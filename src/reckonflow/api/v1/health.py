@@ -35,7 +35,9 @@ async def health() -> HealthResponse:
         )
     db_ok = await _database_ping()
     redis_ok = await redis_ping()
-    status = "ok" if db_ok else "degraded"
+    # Process can still serve traffic (idempotency fails open), but operators
+    # should see degraded when either dependency is unreachable.
+    status = "ok" if db_ok and redis_ok else "degraded"
     return HealthResponse(
         status=status,
         app=settings.app_name,

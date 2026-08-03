@@ -7,7 +7,7 @@ services:
     runtime: python
     plan: free
     region: frankfurt
-    branch: master
+    branch: main
     buildCommand: pip install uv && uv sync --frozen
     startCommand: bash scripts/render_start.sh
     healthCheckPath: /health
@@ -25,12 +25,15 @@ services:
       - key: RECEIPT_STORAGE_DIR
         value: /tmp/reckonflow-receipts
       # Secrets from the dashboard:
-      # DATABASE_URL — Neon
-      # REDIS_URL    — existing Upstash free DB (shared OK; keys are prefixed)
+      # DATABASE_URL — Neon (postgresql+asyncpg://…?ssl=require)
+      # REDIS_URL    — Upstash (rediss://…, note the double s)
+      # API_KEY      — required on mutating routes in production
       # GROQ_API_KEY — optional
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
+        sync: false
+      - key: API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
