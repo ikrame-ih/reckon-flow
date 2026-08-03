@@ -1,0 +1,21 @@
+# Runs quality checks before each commit.
+# Install once: uv run pre-commit install
+# Manual run:  uv run pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.16.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.6
+          - pydantic-settings>=2.6
+        args: [--config-file=pyproject.toml]
+        pass_filenames: false
