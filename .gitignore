@@ -27,6 +27,7 @@ Thumbs.db
 
 # Uploads and local data
 uploads/
+var/
 *.log
 
 # Alembic local

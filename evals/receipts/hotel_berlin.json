@@ -1,0 +1,13 @@
+{
+  "id": "hotel_berlin",
+  "raw_text": "Hotel Mitte Berlin\nDate: 2026-07-20\nRoom 3x 40.00 120.00\nSubtotal 120.00\nVAT 19% 22.80\nTotal 142.80 EUR\nThank you",
+  "expected": {
+    "vendor": "Hotel Mitte Berlin",
+    "receipt_date": "2026-07-20",
+    "currency": "EUR",
+    "subtotal": "120.00",
+    "vat_amount": "22.80",
+    "vat_rate": "19",
+    "total": "142.80"
+  }
+}

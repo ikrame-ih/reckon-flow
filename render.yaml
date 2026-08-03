@@ -1,0 +1,36 @@
+# I describe the Render web service for ReckonFlow
+# Dashboard alternative: create a Web Service manually with the same settings
+
+services:
+  - type: web
+    name: reckonflow-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    branch: master
+    buildCommand: pip install uv && uv sync --frozen
+    startCommand: bash scripts/render_start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: IDEMPOTENCY_ENABLED
+        value: "true"
+      - key: REDIS_KEY_PREFIX
+        value: "reckonflow:"
+      - key: RECEIPT_STORAGE_DIR
+        value: /tmp/reckonflow-receipts
+      # Secrets from the dashboard:
+      # DATABASE_URL — Neon
+      # REDIS_URL    — existing Upstash free DB (shared OK; keys are prefixed)
+      # GROQ_API_KEY — optional
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

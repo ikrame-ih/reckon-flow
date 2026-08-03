@@ -7,31 +7,19 @@ alwaysApply: true
 
 ## Comments and docstrings
 
-- Write comments and docstrings in **first person** (`I load…`, `I return…`)
-- Do **not** end comment/docstring sentences with a trailing period (punto final)
-- Keep English simple and neutral
-- Prefer short lines over dense paragraphs
+- Write in **first person** (`I load…`, `I enforce…`)
+- Do **not** end sentences with a trailing period
+- Explain **why** (constraint, risk, design choice), not only what the line does
+- Keep English clear enough for a recruiter skimming the file
 
-```python
-# BAD
-# Loads settings from the environment.
+## Git
 
-# GOOD
-# I load settings from the environment
-```
-
-```python
-# BAD
-"""Build the FastAPI app."""
-
-# GOOD
-"""I build the FastAPI application"""
-```
+Do not create commits or push unless the user explicitly asks
 
 ## Obsidian study notes
 
-Whenever I add or change project code, ADRs, README, CI, or architecture decisions, I also update the matching notes under:
+When architecture or major features change, update notes under:
 
 `C:\Users\tizza\Documents\Obsidian Vault\ReckonFlow\docs`
 
-Keep vault notes in first person (study voice). Reflect what is already implemented vs still planned.
+Write vault notes in first-person English. Describe the stack neutrally (no marketing fluff).

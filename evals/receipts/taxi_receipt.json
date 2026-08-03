@@ -1,0 +1,10 @@
+{
+  "id": "taxi_receipt",
+  "raw_text": "Berlin Taxi GmbH\n2026-07-21\nAirport transfer 45.50\nTotal: 45.50 EUR",
+  "expected": {
+    "vendor": "Berlin Taxi GmbH",
+    "receipt_date": "2026-07-21",
+    "currency": "EUR",
+    "total": "45.50"
+  }
+}

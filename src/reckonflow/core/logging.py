@@ -1,7 +1,6 @@
 """I set up structured logging with structlog
 
-I prefer logs with fields like timestamp and level over plain print
-so I can search them later in production
+I emit field-rich logs so I can search by request id, level, and timestamp later
 """
 
 import logging
@@ -11,9 +10,8 @@ import structlog
 
 
 def setup_logging(*, debug: bool = False) -> None:
-    """I configure structlog for local development or production"""
+    """I configure console-friendly logs in debug and JSON logs otherwise"""
     level = logging.DEBUG if debug else logging.INFO
-
     logging.basicConfig(format="%(message)s", stream=sys.stdout, level=level)
 
     shared_processors: list[structlog.types.Processor] = [
@@ -25,11 +23,11 @@ def setup_logging(*, debug: bool = False) -> None:
         structlog.processors.format_exc_info,
     ]
 
-    renderer: structlog.types.Processor
-    if debug:
-        renderer = structlog.dev.ConsoleRenderer()
-    else:
-        renderer = structlog.processors.JSONRenderer()
+    renderer: structlog.types.Processor = (
+        structlog.dev.ConsoleRenderer()
+        if debug
+        else structlog.processors.JSONRenderer()
+    )
 
     structlog.configure(
         processors=[
@@ -47,7 +45,6 @@ def setup_logging(*, debug: bool = False) -> None:
             renderer,
         ],
     )
-
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
     root = logging.getLogger()
@@ -58,5 +55,7 @@ def setup_logging(*, debug: bool = False) -> None:
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     """I return a named structured logger"""
+    # structlog types get_logger as Any; I narrow it once here so every caller
+    # gets real completion and mypy --strict stays happy
     logger: structlog.stdlib.BoundLogger = structlog.get_logger(name)
     return logger
