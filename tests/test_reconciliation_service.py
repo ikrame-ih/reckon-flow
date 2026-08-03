@@ -1,8 +1,6 @@
-"""I test the reconciliation pipeline end to end against SQLite
+"""Reconciliation pipeline end-to-end on SQLite
 
-The interesting cases are not the happy path: they are the prefilter throwing
-away work, the engine refusing to guess between two equally good candidates,
-and two reviewers racing to claim the same bank line
+Focus: prefilter savings, ambiguous top-two candidates, concurrent confirm races.
 """
 
 from __future__ import annotations
@@ -188,10 +186,9 @@ async def test_confirming_twice_for_the_same_expense_conflicts(
 
 
 async def test_postgres_confirm_emits_select_for_update() -> None:
-    """I prove the pessimistic lock is really requested on PostgreSQL
+    """PostgreSQL confirm path emits SELECT ... FOR UPDATE
 
-    SQLite cannot run FOR UPDATE, so I mock the session and inspect the SQL
-    that reaches it — the assertion is about the statement, not the database
+    SQLite skips FOR UPDATE — inspect generated SQL via mocked session instead.
     """
     statements: list[str] = []
 
@@ -220,7 +217,7 @@ async def test_postgres_confirm_emits_select_for_update() -> None:
 
 
 async def test_sqlite_confirm_skips_for_update(session: AsyncSession) -> None:
-    """I must not emit a clause the test dialect would reject"""
+    """SQLite dialect must not get FOR UPDATE"""
     service = ReconciliationService(session)
 
     assert service._supports_row_locks() is False

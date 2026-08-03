@@ -1,8 +1,7 @@
-"""I translate domain exceptions into HTTP responses
+"""Map domain exceptions to HTTP responses
 
-The service layer raises meaning ("this transition is illegal"), not status
-codes. Mapping them once here keeps HTTP out of the domain and guarantees
-every error leaves the API in the same JSON shape
+Services raise meaning ("this transition is illegal"), not status codes.
+Central mapping keeps HTTP out of the domain and uniform error JSON.
 """
 
 from __future__ import annotations
@@ -21,16 +20,14 @@ from reckonflow.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-# I keep the mapping as data so the table of "which error means what over
-# HTTP" is readable in one glance
+# Readable table of which domain error maps to which HTTP status
 ERROR_STATUS_MAP: dict[type[ReckonFlowError], int] = {
     NotFoundError: status.HTTP_404_NOT_FOUND,
     # 409 rather than 400: the request is well-formed, it just lost a race or
     # asked for a move the current state does not allow
     ConflictError: status.HTTP_409_CONFLICT,
     InvalidStateTransitionError: status.HTTP_409_CONFLICT,
-    # I write 422 as a literal because Starlette renamed the constant and I do
-    # not want the app to depend on which spelling the installed version has
+    # 422 literal — Starlette renamed the constant across versions
     UnbalancedLedgerError: 422,
 }
 
@@ -43,7 +40,7 @@ def _error_response(exc: ReckonFlowError, status_code: int) -> JSONResponse:
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    """I attach one handler per domain error, plus a catch-all base handler"""
+    """Attach one handler per domain error plus a catch-all base handler"""
 
     async def handle_known(request: Request, exc: Exception) -> JSONResponse:
         assert isinstance(exc, ReckonFlowError)
@@ -53,11 +50,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         app.add_exception_handler(error_type, handle_known)
 
     async def handle_base(request: Request, exc: Exception) -> JSONResponse:
-        """I catch domain errors I have not mapped yet
-
-        A new subclass should surface as a clean 400, not a 500 that looks
-        like a crash in the logs
-        """
+        """Unmapped domain errors become 400, not opaque 500s"""
         assert isinstance(exc, ReckonFlowError)
         logger.warning(
             "api.unmapped_domain_error",

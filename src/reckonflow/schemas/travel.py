@@ -1,7 +1,7 @@
-"""I define travel request, approval, and expense shapes
+"""Travel request, approval, and expense API shapes
 
-Approvals are a state machine, so the API never accepts a free-text status:
-it accepts a named *action* and lets the service decide whether it is legal
+Approvals are a state machine — the API accepts a named action, not a free-text
+status, and the service decides whether the move is legal.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from reckonflow.schemas.common import CurrencyCode, MoneyStr
 
 
 class TravelRequestCreate(BaseModel):
-    """I validate a trip pre-request before any money is committed"""
+    """Trip pre-request validated before any money is committed"""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -44,14 +44,14 @@ class TravelRequestCreate(BaseModel):
 
     @model_validator(mode="after")
     def check_dates(self) -> TravelRequestCreate:
-        """I reject trips that end before they start — a data error, not a rule"""
+        """Reject trips that end before they start — a data error, not a policy rule"""
         if self.end_date < self.start_date:
             raise ValueError("end_date cannot be earlier than start_date")
         return self
 
 
 class ApprovalRead(BaseModel):
-    """I describe the approval attached to a travel request"""
+    """Approval attached to a travel request"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,7 +64,7 @@ class ApprovalRead(BaseModel):
 
 
 class TravelRequestRead(BaseModel):
-    """I describe a stored travel request and its current approval"""
+    """Stored travel request with its current approval"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -81,10 +81,10 @@ class TravelRequestRead(BaseModel):
 
 
 class ApprovalAction(StrEnum):
-    """I name the transitions a reviewer may request
+    """Named transitions a reviewer may request
 
-    I expose actions instead of target statuses so an invalid jump like
-    pending -> paid is impossible to even express in the request body
+    Actions instead of target statuses make illegal jumps like pending → paid
+    unrepresentable in the request body.
     """
 
     APPROVE = "approve"
@@ -93,7 +93,7 @@ class ApprovalAction(StrEnum):
 
 
 class ApprovalTransition(BaseModel):
-    """I carry the reviewer's decision"""
+    """Reviewer's decision payload"""
 
     action: ApprovalAction = Field(..., examples=["approve"])
     reviewer: str | None = Field(None, max_length=120, examples=["finance.lead"])
@@ -101,7 +101,7 @@ class ApprovalTransition(BaseModel):
 
 
 class ExpenseCreate(BaseModel):
-    """I validate a spend that may later match a bank line and a receipt"""
+    """Spend that may later match a bank line and a receipt"""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -127,7 +127,7 @@ class ExpenseCreate(BaseModel):
 
 
 class ExpenseRead(BaseModel):
-    """I describe a stored expense and where it stands in reconciliation"""
+    """Stored expense and its reconciliation status"""
 
     model_config = ConfigDict(from_attributes=True)
 

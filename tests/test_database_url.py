@@ -1,4 +1,4 @@
-"""I check Neon-style URL rewriting for asyncpg"""
+"""Neon-style DATABASE_URL rewriting for asyncpg"""
 
 from __future__ import annotations
 

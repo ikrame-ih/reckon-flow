@@ -1,7 +1,4 @@
-"""I load application settings from environment variables
-
-I keep secrets and environment-specific URLs out of source code
-"""
+"""Application settings loaded from environment variables"""
 
 from functools import lru_cache
 
@@ -9,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """I centralize ReckonFlow configuration for every environment"""
+    """Central configuration for every environment"""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -27,43 +24,39 @@ class Settings(BaseSettings):
     )
     redis_url: str = "redis://localhost:6379/0"
 
-    # I use Groq's free tier for receipt extraction; empty key disables live calls
-    # and makes the deterministic stub extractor take over, so demos and CI
-    # never depend on a third-party quota
+    # Groq free tier for receipts; empty key → deterministic stub (CI/demos)
     groq_api_key: str = ""
     groq_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
 
-    # I keep uploaded receipts on the local filesystem for now; object storage
-    # is a drop-in replacement later because only ReceiptService touches paths
+    # Local filesystem for now; object storage is a drop-in via ReceiptService
     receipt_storage_dir: str = "var/receipts"
 
     idempotency_enabled: bool = True
     idempotency_ttl_seconds: int = 86_400
-    # I namespace Redis keys so I can share one Upstash free DB with another app
+    # Namespace keys when sharing one Redis instance across apps
     redis_key_prefix: str = "reckonflow:"
 
-    # I only compare bank rows that fall inside this date window around the
-    # expense date, which keeps the fuzzy stage cheap on large statements
+    # Bank rows within this window around expense date keep fuzzy stage cheap
     reconciliation_date_window_days: int = 5
-    # I allow a small relative amount drift for card fees and FX rounding
+    # Relative amount tolerance for card fees and FX rounding
     reconciliation_amount_tolerance: float = 0.02
     reconciliation_auto_match_threshold: float = 0.72
-    # I refuse to auto-match on rank position alone; the text must also agree
+    # Auto-match needs text agreement, not rank position alone
     reconciliation_min_fuzzy_score: float = 60.0
     reconciliation_rrf_k: int = 60
 
 
 @lru_cache
 def get_settings() -> Settings:
-    """I return one cached Settings instance per process"""
+    """Cached Settings singleton per process"""
     return Settings()
 
 
 def async_database_url(url: str | None = None) -> str:
-    """I rewrite hosted Postgres URLs for SQLAlchemy async + asyncpg
+    """Rewrite hosted Postgres URLs for SQLAlchemy async + asyncpg
 
-    Neon hands out postgres:// links with sslmode= and channel_binding=
-    asyncpg rejects channel_binding and wants ssl=require instead of sslmode
+    Neon links use sslmode= and channel_binding=; asyncpg rejects
+    channel_binding and wants ssl=require instead of sslmode.
     """
     from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -74,7 +67,7 @@ def async_database_url(url: str | None = None) -> str:
         raw = "postgresql+asyncpg://" + raw.removeprefix("postgresql://")
 
     parsed = urlparse(raw)
-    # I drop params asyncpg does not understand (Neon adds channel_binding)
+    # Drop query params asyncpg does not understand (Neon adds channel_binding)
     dropped = {"channel_binding", "sslmode"}
     query = {
         key: value

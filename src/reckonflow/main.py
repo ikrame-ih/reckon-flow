@@ -1,8 +1,7 @@
-"""I build the FastAPI application
+"""FastAPI application factory and CLI entry point
 
-I keep create_app() as a factory so my tests can spin up a fresh app
-without starting uvicorn, and so a test can swap the Redis factory before the
-middleware is ever hit
+create_app() lets tests spin up a fresh app without uvicorn and swap the Redis
+factory before middleware runs.
 """
 
 from __future__ import annotations
@@ -11,6 +10,7 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from redis.asyncio import Redis
 
 from reckonflow import __version__
@@ -59,17 +59,13 @@ TAGS_METADATA = [
 
 
 def create_app(*, redis_factory: Callable[[], Redis] | None = None) -> FastAPI:
-    """I assemble the ReckonFlow API
-
-    I accept a redis_factory so tests can inject a fake client instead of
-    reaching a real server
-    """
+    """Assemble the ReckonFlow API; optional redis_factory for tests"""
     settings = get_settings()
     setup_logging(debug=settings.debug)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        """I release the Redis pool on shutdown so reloads stay clean"""
+        """Release Redis pool on shutdown so reloads stay clean"""
         yield
         await close_redis()
 
@@ -92,9 +88,14 @@ def create_app(*, redis_factory: Callable[[], Redis] | None = None) -> FastAPI:
     )
     register_exception_handlers(app)
 
-    # I expose a top-level probe at GET /health
+    @app.get("/", include_in_schema=False)
+    async def root() -> RedirectResponse:
+        """Send browsers to the interactive docs — there is no HTML home page"""
+        return RedirectResponse(url="/docs")
+
+    # Top-level probe: GET /health
     app.include_router(health_router)
-    # I also mount the same health route under the versioned API prefix
+    # Versioned API under /api/v1
     app.include_router(api_router, prefix=settings.api_v1_prefix)
     return app
 
@@ -103,7 +104,7 @@ app = create_app()
 
 
 def run() -> None:
-    """I start uvicorn when I run `uv run reckonflow`"""
+    """Entry point for `uv run reckonflow`"""
     import uvicorn
 
     uvicorn.run(

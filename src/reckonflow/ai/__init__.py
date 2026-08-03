@@ -1,8 +1,7 @@
-"""I select the receipt extractor for the current environment
+"""Choose stub or Groq receipt extractor from environment
 
-The rule is one line: a Groq key means the model runs, no key means the
-deterministic stub runs. Nothing else in the codebase branches on that, so
-tests, CI, and an offline demo all exercise the same code path
+Groq key → model runs; no key → deterministic stub. Nothing else branches on
+that, so tests, CI, and offline demos share one code path.
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ __all__ = [
 
 
 def get_receipt_extractor() -> ReceiptExtractor:
-    """I return the best extractor I can build without failing"""
+    """Pick stub or Groq extractor based on configuration"""
     settings = get_settings()
     if not settings.groq_api_key:
         logger.info("receipt.extractor_selected", provider="stub", reason="no api key")

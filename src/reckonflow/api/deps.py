@@ -1,8 +1,8 @@
-"""I wire services into routes with FastAPI dependencies
+"""Wire services into routes via FastAPI dependencies
 
-Routers stay thin: they validate input, call one service method, and shape the
-response. Building services here keeps that boundary honest and makes every
-service trivially replaceable in a test with dependency_overrides
+Routers validate input, call one service method, and shape the response.
+Building services here keeps that boundary honest and makes dependency_overrides
+trivial in tests.
 """
 
 from __future__ import annotations

@@ -1,8 +1,4 @@
-"""I expose the expense routes
-
-An expense is the pivot of reconciliation: it is what a receipt documents and
-what a bank line eventually pays for
-"""
+"""Expense routes — pivot for receipts and bank reconciliation"""
 
 from __future__ import annotations
 
@@ -32,7 +28,7 @@ router = APIRouter(prefix="/expenses", tags=["expenses"])
 async def create_expense(
     payload: ExpenseCreate, service: TravelServiceDep
 ) -> ExpenseRead:
-    """I record one expense"""
+    """Record one expense"""
     expense = await service.create_expense(
         travel_request_id=payload.travel_request_id,
         vendor=payload.vendor,
@@ -56,7 +52,7 @@ async def list_expenses(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> list[ExpenseRead]:
-    """I page expenses newest first"""
+    """Page expenses, newest first"""
     expenses = await service.list_expenses(
         travel_request_id=travel_request_id, limit=limit, offset=offset
     )
@@ -70,6 +66,6 @@ async def list_expenses(
     responses={404: {"model": ErrorResponse, "description": "Unknown expense"}},
 )
 async def get_expense(expense_id: int, service: TravelServiceDep) -> ExpenseRead:
-    """I return one expense"""
+    """One expense record"""
     expense = await service.get_expense(expense_id)
     return ExpenseRead.model_validate(expense)

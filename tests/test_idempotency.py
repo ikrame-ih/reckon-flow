@@ -1,8 +1,7 @@
-"""I test the idempotency middleware against a fake Redis
+"""Idempotency middleware with a fake Redis
 
-I use a fake rather than a real server for two reasons: CI must not need
-Docker, and a fake lets me simulate the states that are hard to reproduce on
-purpose — a key still in progress, and a Redis that is simply down
+Fake Redis avoids Docker in CI and simulates hard-to-reproduce states: key
+still in progress, and Redis completely down.
 """
 
 from __future__ import annotations
@@ -22,7 +21,7 @@ from reckonflow.api.middleware.idempotency import (
 
 
 class FakeRedis:
-    """I implement just the SET NX EX / GET slice the middleware uses"""
+    """Minimal SET NX EX / GET implementation the middleware needs"""
 
     def __init__(self) -> None:
         self.store: dict[str, str] = {}
@@ -47,14 +46,14 @@ class FakeRedis:
 
 
 class BrokenRedis(FakeRedis):
-    """I stand in for a Redis that is unreachable"""
+    """Simulates unreachable Redis"""
 
     async def set(self, *args: Any, **kwargs: Any) -> bool | None:
         raise ConnectionError("redis is down")
 
 
 def build_client(redis: Any, *, enabled: bool = True) -> tuple[TestClient, list[int]]:
-    """I wrap a counting endpoint in the middleware under test"""
+    """Test app with counting endpoint wrapped in idempotency middleware"""
     calls: list[int] = []
     app = FastAPI()
     app.add_middleware(

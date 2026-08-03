@@ -19,8 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # I avoid CREATE EXTENSION vector here so a stock Windows PostgreSQL
-    # install works; embeddings live in JSONB until a pgvector host is available
+    # No CREATE EXTENSION vector — stock Windows PostgreSQL works; embeddings in JSONB
 
     op.create_table(
         "accounts",
@@ -82,8 +81,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_ledger_entries_account_id", "ledger_entries", ["account_id"])
 
-    # I enforce balanced transactions at commit time with a deferred constraint
-    # trigger so multi-row inserts inside one transaction can finish first
+    # Deferred constraint trigger — multi-row inserts finish before balance check
     op.execute(
         """
         CREATE OR REPLACE FUNCTION check_ledger_transaction_balanced()

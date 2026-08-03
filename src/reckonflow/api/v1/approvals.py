@@ -1,9 +1,4 @@
-"""I expose the approval state machine over HTTP
-
-The client asks for an *action*, not a status. That keeps illegal jumps such
-as pending -> paid unrepresentable in the request body, and it leaves one
-place — TravelService — that decides whether a move is allowed
-"""
+"""Approval state machine over HTTP — clients send actions, not target statuses"""
 
 from __future__ import annotations
 
@@ -16,7 +11,7 @@ from reckonflow.schemas.travel import ApprovalAction, ApprovalRead, ApprovalTran
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
 
-# I translate the requested action into the target state of the machine
+# Map requested action to target approval state
 _ACTION_TARGETS: dict[ApprovalAction, ApprovalStatus] = {
     ApprovalAction.APPROVE: ApprovalStatus.APPROVED,
     ApprovalAction.REJECT: ApprovalStatus.REJECTED,
@@ -38,7 +33,7 @@ async def list_approvals(
     status: ApprovalStatus | None = Query(None, examples=["pending"]),
     limit: int = Query(100, ge=1, le=500),
 ) -> list[ApprovalRead]:
-    """I list approvals, optionally narrowed to one status"""
+    """List approvals, optionally filtered by status"""
     approvals = await service.list_approvals(status=status, limit=limit)
     return [ApprovalRead.model_validate(approval) for approval in approvals]
 
@@ -50,7 +45,7 @@ async def list_approvals(
     responses={404: {"model": ErrorResponse, "description": "Unknown approval"}},
 )
 async def get_approval(approval_id: int, service: TravelServiceDep) -> ApprovalRead:
-    """I return one approval"""
+    """One approval record"""
     approval = await service.get_approval(approval_id)
     return ApprovalRead.model_validate(approval)
 
@@ -75,7 +70,7 @@ async def get_approval(approval_id: int, service: TravelServiceDep) -> ApprovalR
 async def transition_approval(
     approval_id: int, payload: ApprovalTransition, service: TravelServiceDep
 ) -> ApprovalRead:
-    """I apply one reviewer decision to an approval"""
+    """Apply one reviewer decision"""
     approval = await service.transition_approval(
         approval_id,
         target=_ACTION_TARGETS[payload.action],

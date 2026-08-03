@@ -1,27 +1,20 @@
-"""I match expenses to bank lines with a small hybrid retrieval pipeline
+"""Hybrid expense–bank matching: SQL prefilter, RapidFuzz, embeddings, RRF
 
-The problem: "TAXI BERLIN 14/09" on a card statement and "Airport transfer,
-Berlin" in an expense form are the same payment, but no exact join finds them
+Problem: "TAXI BERLIN 14/09" on a statement and "Airport transfer, Berlin" in
+a form are the same payment, but no exact join finds them.
 
-The pipeline, cheapest stage first:
+Pipeline (cheapest stage first):
+1. SQL prefilter — date window + amount tolerance (makes fuzzy stage affordable)
+2. RapidFuzz on descriptions — abbreviations and reordered words
+3. Embedding cosine when both sides have vectors — no shared tokens
+4. Reciprocal Rank Fusion (k=60) — fuse rankings, not incomparable scores
 
-1. **SQL prefilter** — only bank rows inside a date window and an amount
-   tolerance survive. This is the stage that makes the rest affordable: fuzzy
-   matching every expense against a full statement is O(n*m)
-2. **RapidFuzz** on descriptions — catches abbreviations and reordered words
-3. **Embedding cosine**, only when both rows already have an embedding —
-   catches wording that shares no tokens at all
-4. **Reciprocal Rank Fusion (k=60)** — I fuse the *rankings*, not the scores
+RRF beats weighted sums because RapidFuzz (0–100), cosine (−1–1), and amount
+closeness live on different scales. RRF only needs sensible orderings; a missing
+signal degrades gracefully instead of breaking the run.
 
-Why RRF rather than a weighted sum: the signals are not comparable. RapidFuzz
-returns 0-100, cosine returns -1 to 1, and amount closeness is its own scale.
-Normalising them into one weighted score means inventing weights I cannot
-defend. RRF only needs each signal to order candidates sensibly, so a signal
-being absent (no embeddings) degrades the result instead of breaking it
-
-Above the confidence threshold I auto-match; below it the pair goes to
-`pending_review`. Silence is the failure mode I want in accounting — an
-unreviewed wrong match is far more expensive than a queue item
+Above threshold → auto-match; below → pending_review. Wrong silent matches cost
+more than queue items in accounting.
 """
 
 from __future__ import annotations
@@ -41,7 +34,7 @@ from reckonflow.core.exceptions import ConflictError, NotFoundError
 from reckonflow.models import BankTransaction, Expense
 from reckonflow.models.travel import MatchStatus
 
-# I only consider bank rows that are still available to be claimed
+# Only bank rows still available to be claimed
 _OPEN_STATUSES = (
     MatchStatus.UNMATCHED.value,
     MatchStatus.SUGGESTED.value,
@@ -52,13 +45,12 @@ _OPEN_STATUSES = (
 def reciprocal_rank_fusion(
     rankings: Mapping[str, Sequence[int]], *, k: int = 60
 ) -> dict[int, float]:
-    """I fuse ranked candidate lists into one score per candidate
+    """Fuse ranked candidate lists into one score per candidate
 
-    score(d) = sum over rankings of 1 / (k + rank(d)), ranks starting at 1
+    score(d) = sum over rankings of 1 / (k + rank(d)), ranks starting at 1.
 
-    k = 60 is the value from the original RRF paper. It flattens the curve so
-    rank 1 does not dominate rank 2, which matters here: my signals disagree
-    about the ordering more often than they disagree about the shortlist
+    k = 60 comes from the original RRF paper. It flattens the curve so rank 1
+    does not dominate rank 2 — important when signals disagree about ordering.
     """
     if k <= 0:
         raise ValueError("RRF k must be positive")
@@ -71,11 +63,10 @@ def reciprocal_rank_fusion(
 
 
 def max_rrf_score(ranking_count: int, *, k: int = 60) -> float:
-    """I return the best score reachable: first place in every ranking
+    """Best score reachable: first place in every ranking
 
-    Dividing by this turns a raw RRF score into a 0-1 confidence, which is
-    what makes a single configured threshold meaningful across runs where a
-    different number of signals was available
+    Dividing raw RRF by this yields a 0–1 confidence comparable across runs
+    where a different number of signals was available.
     """
     if ranking_count <= 0:
         return 0.0
@@ -83,7 +74,7 @@ def max_rrf_score(ranking_count: int, *, k: int = 60) -> float:
 
 
 def cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
-    """I return cosine similarity, or 0.0 when either vector is unusable"""
+    """Cosine similarity, or 0.0 when either vector is unusable"""
     if not left or not right or len(left) != len(right):
         return 0.0
     dot = sum(a * b for a, b in zip(left, right, strict=True))
@@ -95,10 +86,10 @@ def cosine_similarity(left: Sequence[float], right: Sequence[float]) -> float:
 
 
 def amount_similarity(left: Decimal, right: Decimal) -> float:
-    """I score how close two amounts are, 1.0 when identical
+    """Score how close two amounts are — 1.0 when identical
 
-    I compare magnitudes because a statement may sign an expense negatively
-    while the expense form stores it positive
+    Compare magnitudes because statements may sign an expense negatively while
+    the expense form stores it positive.
     """
     a, b = abs(left), abs(right)
     largest = max(a, b)
@@ -108,7 +99,7 @@ def amount_similarity(left: Decimal, right: Decimal) -> float:
 
 
 def date_similarity(left: date, right: date, *, window_days: int) -> float:
-    """I score date closeness linearly across the allowed window"""
+    """Linear date-closeness score across the allowed window"""
     if window_days <= 0:
         return 1.0 if left == right else 0.0
     distance = abs((left - right).days)
@@ -117,7 +108,7 @@ def date_similarity(left: date, right: date, *, window_days: int) -> float:
 
 @dataclass(frozen=True)
 class ScoredCandidate:
-    """I hold one bank row plus every signal computed for it"""
+    """One bank row plus every signal computed for it"""
 
     bank_transaction: BankTransaction
     fuzzy_score: float
@@ -131,7 +122,7 @@ class ScoredCandidate:
 
 
 class ReconciliationService:
-    """I produce match suggestions and commit confirmed matches safely"""
+    """Match suggestions and safe confirmation of expense–bank links"""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -145,7 +136,7 @@ class ReconciliationService:
         date_window_days: int | None = None,
         amount_tolerance: float | None = None,
     ) -> tuple[Expense, list[ScoredCandidate], int]:
-        """I return the expense, its ranked candidates, and the prefilter size"""
+        """Expense, ranked candidates, and how many rows survived prefilter"""
         expense = await self._session.get(Expense, expense_id)
         if expense is None:
             raise NotFoundError(f"Expense {expense_id} not found")
@@ -172,14 +163,13 @@ class ReconciliationService:
     async def _prefilter(
         self, expense: Expense, *, window: int, tolerance: float
     ) -> list[BankTransaction]:
-        """I let the database throw away everything that cannot possibly match
+        """SQL prefilter — discard rows that cannot possibly match
 
-        The index on booking_date does the heavy lifting; without this stage
-        every suggestion would fuzzy-compare against the whole statement
+        The booking_date index does the heavy lifting; without this stage every
+        suggestion would fuzzy-compare against the whole statement.
         """
         amount = abs(Decimal(expense.amount))
-        # I keep an absolute floor so tiny amounts still tolerate a cent of
-        # rounding, and scale with the amount for larger ones
+        # Absolute floor for tiny amounts plus proportional slack on larger ones
         slack = max(Decimal("0.01"), amount * Decimal(str(tolerance)))
         low, high = amount - slack, amount + slack
 
@@ -205,7 +195,7 @@ class ReconciliationService:
     def _score(
         self, expense: Expense, candidates: list[BankTransaction], *, window: int
     ) -> list[ScoredCandidate]:
-        """I compute every available signal for each surviving candidate"""
+        """Compute every available signal for each surviving candidate"""
         expense_text = f"{expense.vendor} {expense.description}".strip()
         expense_amount = Decimal(expense.amount)
         expense_embedding = expense.embedding
@@ -247,7 +237,7 @@ class ReconciliationService:
     def _fuse(
         self, scored: list[ScoredCandidate], *, limit: int
     ) -> list[ScoredCandidate]:
-        """I rank by each signal, fuse the ranks, and gate the auto-match"""
+        """Rank by each signal, fuse ranks, and gate auto-match"""
         by_id = {item.bank_transaction.id: item for item in scored}
 
         rankings: dict[str, list[int]] = {
@@ -295,8 +285,7 @@ class ReconciliationService:
                     embedding_score=item.embedding_score,
                     rrf_score=raw_score,
                     confidence=confidence,
-                    # Rank alone is not evidence: with two candidates, one of
-                    # them is always first. I also require the text to agree
+                    # Rank alone is not evidence — require text agreement too
                     auto_matchable=(
                         confidence >= threshold and item.fuzzy_score >= min_fuzzy
                     ),
@@ -310,13 +299,12 @@ class ReconciliationService:
     async def confirm_match(
         self, expense_id: int, bank_transaction_id: int
     ) -> tuple[Expense, BankTransaction]:
-        """I link an expense to a bank line under a row lock
+        """Link expense to bank line under row lock
 
-        Two reviewers can open the same suggestion. Without a lock both could
-        read "unmatched", both write, and one payment ends up reconciled
-        twice. I take `SELECT ... FOR UPDATE` on both rows in a fixed order
-        (expense first) so concurrent confirmations serialize instead of
-        deadlocking, and re-check the state *after* acquiring the lock
+        Two reviewers can open the same suggestion. Without a lock both read
+        "unmatched", both write, and one payment ends up reconciled twice.
+        SELECT ... FOR UPDATE on both rows (expense first) serializes
+        concurrent confirmations and avoids deadlocks.
         """
         lock = self._supports_row_locks()
 
@@ -351,7 +339,7 @@ class ReconciliationService:
         return expense, bank_row
 
     async def flag_for_review(self, expense_id: int) -> Expense:
-        """I park an expense in the reviewer queue when no candidate is safe"""
+        """Park an expense in the reviewer queue when no candidate is safe"""
         expense = await self._session.get(Expense, expense_id)
         if expense is None:
             raise NotFoundError(f"Expense {expense_id} not found")
@@ -360,10 +348,10 @@ class ReconciliationService:
         return expense
 
     async def auto_reconcile(self, expense_id: int) -> tuple[Expense, int | None]:
-        """I match automatically when the top candidate clears every gate
+        """Auto-match when the top candidate clears every gate
 
-        Returns the expense and the bank row it claimed, or None when the case
-        was parked for a human
+        Returns the expense and claimed bank row id, or None when parked for
+        a human.
         """
         expense, ranked, _ = await self.suggest_matches(expense_id, limit=2)
         if not ranked:
@@ -373,11 +361,8 @@ class ReconciliationService:
         if not best.auto_matchable:
             return await self.flag_for_review(expense_id), None
 
-        # If the runner-up also clears every gate, the evidence does not
-        # distinguish them and picking one would be a coin flip dressed up as
-        # a decision. I compare on the gates rather than on the score gap:
-        # the RRF distance between adjacent ranks is fixed by k, so it says
-        # nothing about how much better the winner actually is
+        # Runner-up also clearing every gate means the evidence does not
+        # distinguish them — compare on gates, not RRF gap (fixed by k).
         if len(ranked) > 1 and ranked[1].auto_matchable:
             return await self.flag_for_review(expense_id), None
 
@@ -387,9 +372,9 @@ class ReconciliationService:
         return matched_expense, bank_row.id
 
     def _supports_row_locks(self) -> bool:
-        """I only emit FOR UPDATE where the dialect implements it
+        """Emit FOR UPDATE only where the dialect implements it
 
-        SQLite is my unit-test database and would reject the clause outright
+        SQLite (unit tests) rejects the clause outright.
         """
         try:
             return self._session.get_bind().dialect.name in {

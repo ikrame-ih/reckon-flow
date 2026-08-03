@@ -1,8 +1,4 @@
-"""I define health check routes
-
-I use this endpoint to answer: is the API process running?
-Containers and demos call this first before testing real features
-"""
+"""Health check routes for liveness probes"""
 
 from fastapi import APIRouter
 
@@ -20,6 +16,6 @@ router = APIRouter(tags=["health"])
     description="Returns ok when the API process is running.",
 )
 async def health() -> HealthResponse:
-    """I return a tiny JSON payload confirming the app is alive"""
+    """Minimal JSON confirming the process is alive"""
     settings = get_settings()
     return HealthResponse(status="ok", app=settings.app_name, version=__version__)

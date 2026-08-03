@@ -1,0 +1,63 @@
+site_name: ReckonFlow
+site_description: Headless FastAPI backend for travel approvals, double-entry ledgering, receipt extraction, and bank reconciliation
+site_url: https://ikrame-ih.github.io/reckon-flow/
+repo_url: https://github.com/ikrame-ih/reckon-flow
+repo_name: ikrame-ih/reckon-flow
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue grey
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue grey
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Build phases:
+      - Overview: phases/index.md
+      - "0 — Skeleton": phases/00-skeleton.md
+      - "1 — Ledger": phases/01-ledger.md
+      - "2 — Travel flow": phases/02-travel.md
+      - "3 — Idempotency": phases/03-idempotency.md
+      - "4 — Receipt extraction": phases/04-receipts.md
+      - "5 — Reconciliation": phases/05-reconciliation.md
+      - "6 — Polish & deploy": phases/06-polish.md
+  - Glossary: glossary.md
+  - Security: security.md
+  - ADRs:
+      - Index: adr/README.md
+      - "001 Why not dbt": adr/001-why-not-dbt.md
+      - "002 Untrusted receipts": adr/002-receipt-untrusted-input.md
+      - "003 Redis idempotency": adr/003-redis-idempotency.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search

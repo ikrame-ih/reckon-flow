@@ -1,4 +1,4 @@
-"""I configure Alembic to use the same async engine URL as the app"""
+"""Alembic env — same async engine URL as the application"""
 
 from __future__ import annotations
 
@@ -21,12 +21,12 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    """I pull the URL from settings so alembic.ini never holds secrets"""
+    """Load URL from settings so alembic.ini never holds secrets"""
     return async_database_url(get_settings().database_url)
 
 
 def run_migrations_offline() -> None:
-    """I emit SQL without opening a live connection"""
+    """Emit SQL without a live connection"""
     context.configure(
         url=get_url(),
         target_metadata=target_metadata,
@@ -44,7 +44,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """I open an async engine and run migrations inside a sync greenlet"""
+    """Run migrations via async engine inside a sync greenlet"""
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = get_url()
     connectable = async_engine_from_config(

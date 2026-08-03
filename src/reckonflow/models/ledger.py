@@ -1,7 +1,7 @@
-"""I map the append-only double-entry ledger tables
+"""Append-only double-entry ledger tables
 
-I store amounts as Numeric(15, 4) and keep currency on every entry
-so multi-currency is ready even before FX conversion exists
+Amounts use Numeric(15, 4) with currency on every entry so multi-currency is
+ready before FX conversion exists.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class LedgerTransaction(Base):
-    """I group balanced ledger entries that must sum to zero together"""
+    """Groups balanced ledger entries that must sum to zero"""
 
     __tablename__ = "ledger_transactions"
 
@@ -46,11 +46,11 @@ class LedgerTransaction(Base):
 
 
 class LedgerEntry(Base):
-    """I am one debit or credit line; I never update amounts after insert"""
+    """One debit or credit line — amounts never change after insert"""
 
     __tablename__ = "ledger_entries"
     __table_args__ = (
-        # I reject rows where both sides are zero or both sides are non-zero
+        # Reject zero-zero or double-sided rows at the database
         CheckConstraint(
             "(debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0)",
             name="ck_ledger_entry_one_sided",

@@ -1,7 +1,4 @@
-"""I expose the ledger account routes
-
-Accounts are the chart of accounts: every ledger entry points at one of them
-"""
+"""Ledger account routes — chart of accounts for every entry"""
 
 from __future__ import annotations
 
@@ -31,7 +28,7 @@ router = APIRouter(prefix="/accounts", tags=["accounts"])
 async def create_account(
     payload: AccountCreate, service: LedgerServiceDep
 ) -> AccountRead:
-    """I open one account and return it with its generated id"""
+    """Open one account and return it with its generated id"""
     account = await service.create_account(
         code=payload.code, name=payload.name, currency=payload.currency
     )
@@ -49,7 +46,7 @@ async def list_accounts(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> list[AccountRead]:
-    """I page the chart of accounts"""
+    """Page the chart of accounts"""
     accounts = await service.list_accounts(limit=limit, offset=offset)
     return [AccountRead.model_validate(account) for account in accounts]
 
@@ -61,7 +58,7 @@ async def list_accounts(
     responses={404: {"model": ErrorResponse, "description": "Unknown account"}},
 )
 async def get_account(account_id: int, service: LedgerServiceDep) -> AccountRead:
-    """I return a single account or 404"""
+    """Single account, or 404"""
     account = await service.get_account(account_id)
     return AccountRead.model_validate(account)
 
@@ -72,15 +69,14 @@ async def get_account(account_id: int, service: LedgerServiceDep) -> AccountRead
     summary="Get an account balance",
     description=(
         "Computes `SUM(debit) - SUM(credit)` over every entry on the account. "
-        "I never store a running balance: a cached total can drift from the "
-        "entries, and the entries are the legal record."
+        "Running balances are never stored — entries are the legal record."
     ),
     responses={404: {"model": ErrorResponse, "description": "Unknown account"}},
 )
 async def get_account_balance(
     account_id: int, service: LedgerServiceDep
 ) -> AccountBalanceRead:
-    """I aggregate the entries of one account into a balance"""
+    """Aggregate one account's entries into a balance"""
     account = await service.get_account(account_id)
     balance = await service.account_balance(account_id)
     return AccountBalanceRead(

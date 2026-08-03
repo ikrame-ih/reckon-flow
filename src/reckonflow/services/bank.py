@@ -1,8 +1,8 @@
-"""I import bank statement CSVs into normalized rows
+"""Import bank statement CSVs into normalized rows
 
-An uploaded statement is untrusted input, so I validate every row with
-Pydantic and collect failures instead of aborting: one malformed line in a
-900-line export should not cost the user the whole import
+A statement export is untrusted input — validate every row with Pydantic and
+collect failures instead of aborting. One bad line in a 900-row file should
+not void the entire import.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from reckonflow.models import BankTransaction
 from reckonflow.schemas.bank import BankCsvRow, BankImportError, BankImportResult
 
-# I map the header spellings I have actually seen onto my own field names
+# Map header spellings from real exports onto canonical field names
 _HEADER_ALIASES: dict[str, str] = {
     "date": "booking_date",
     "booking date": "booking_date",
@@ -38,22 +38,22 @@ _HEADER_ALIASES: dict[str, str] = {
 
 
 def normalize_header(name: str) -> str:
-    """I fold a CSV header onto my canonical field name"""
+    """Fold a CSV header onto a canonical field name"""
     key = name.strip().lower().lstrip("\ufeff")
     return _HEADER_ALIASES.get(key, key.replace(" ", "_"))
 
 
 class BankService:
-    """I own bank statement ingestion and lookups"""
+    """Ingest bank CSVs and query stored transactions"""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def import_csv(self, content: bytes) -> BankImportResult:
-        """I parse, validate, and bulk-insert a CSV statement
+        """Parse, validate, and bulk-insert a CSV statement
 
-        I dedupe on external_id when the bank provides one, because re-uploading
-        yesterday's file is the single most common operator mistake
+        Dedupe on external_id when present — re-uploading yesterday's file is
+        the most common operator mistake.
         """
         text = content.decode("utf-8-sig", errors="replace")
         reader = csv.DictReader(io.StringIO(text))
@@ -73,7 +73,7 @@ class BankService:
 
         for line_number, raw in enumerate(reader, start=1):
             if not any((value or "").strip() for value in raw.values()):
-                continue  # I skip blank trailing lines silently
+                continue  # blank trailing lines are harmless noise
             received += 1
             try:
                 parsed.append(BankCsvRow.model_validate(raw))
@@ -114,7 +114,7 @@ class BankService:
         )
 
     async def _existing_external_ids(self, candidates: list[str]) -> set[str]:
-        """I fetch the ids already stored so the dedupe costs one query"""
+        """Load existing external ids in one query before deduping"""
         if not candidates:
             return set()
         stmt = select(BankTransaction.external_id).where(

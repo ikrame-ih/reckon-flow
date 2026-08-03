@@ -1,8 +1,6 @@
-"""I test bank CSV ingestion
+"""Bank CSV ingestion — real-world messy exports
 
-A bank export is untrusted input from a system I do not control, so the tests
-here are mostly about the ugly reality of real files: three date formats, the
-European decimal comma, unknown header spellings, and re-uploads
+Untrusted input: mixed date formats, European decimals, header aliases, re-uploads.
 """
 
 from __future__ import annotations
@@ -103,7 +101,7 @@ async def test_duplicates_inside_one_file_are_caught(session: AsyncSession) -> N
 
 
 async def test_rows_without_external_id_are_all_kept(session: AsyncSession) -> None:
-    """Without an id I cannot tell a duplicate from two identical coffees"""
+    """Rows without external_id cannot be deduped — both identical coffees stay"""
     csv = (
         b"booking_date,amount,description\n"
         b"2026-09-18,3.50,COFFEE\n"

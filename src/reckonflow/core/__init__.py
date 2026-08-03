@@ -1,1 +1,1 @@
-"""I group shared core utilities"""
+"""Shared core utilities (config, DB, money, logging)."""

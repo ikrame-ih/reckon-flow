@@ -1,7 +1,7 @@
-"""I define the reconciliation suggestion and confirmation shapes
+"""Reconciliation suggestion and confirmation shapes
 
-I always return the per-signal scores next to the fused score, because a
-finance reviewer needs to see *why* a line was suggested before accepting it
+Per-signal scores sit next to the fused score so a finance reviewer can see
+why a line was suggested before accepting it.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from reckonflow.schemas.common import MoneyStr
 
 
 class MatchSignals(BaseModel):
-    """I expose each individual signal so the suggestion stays auditable"""
+    """Individual signals exposed for auditability"""
 
     fuzzy_score: float = Field(
         ..., description="RapidFuzz token_set_ratio, 0-100", examples=[87.5]
@@ -31,7 +31,7 @@ class MatchSignals(BaseModel):
 
 
 class MatchSuggestion(BaseModel):
-    """I am one candidate bank line for an expense"""
+    """One candidate bank line for an expense"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,7 +55,7 @@ class MatchSuggestion(BaseModel):
 
 
 class MatchSuggestionResponse(BaseModel):
-    """I wrap the suggestions with the expense they belong to"""
+    """Ranked suggestions with the expense they belong to"""
 
     expense_id: int
     expense_amount: MoneyStr
@@ -67,13 +67,13 @@ class MatchSuggestionResponse(BaseModel):
 
 
 class MatchConfirm(BaseModel):
-    """I carry the reviewer's choice of bank line for an expense"""
+    """Reviewer's chosen bank line for an expense"""
 
     bank_transaction_id: int = Field(..., examples=[42])
 
 
 class MatchResult(BaseModel):
-    """I report the outcome of linking an expense to a bank line"""
+    """Outcome of linking an expense to a bank line"""
 
     expense_id: int
     bank_transaction_id: int

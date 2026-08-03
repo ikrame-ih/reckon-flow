@@ -1,9 +1,4 @@
-"""I expose the double-entry ledger routes
-
-There is no endpoint to update or delete an entry, and that is deliberate: an
-accounting ledger is append-only, so a correction is a new reversing
-transaction that leaves the original visible in the audit trail
-"""
+"""Double-entry ledger routes — append-only; corrections are reversing entries"""
 
 from __future__ import annotations
 
@@ -35,7 +30,7 @@ router = APIRouter(prefix="/ledger", tags=["ledger"])
 async def create_transaction(
     payload: LedgerTransactionCreate, service: LedgerServiceDep
 ) -> LedgerTransactionRead:
-    """I post one balanced transaction and return it with its entries"""
+    """Post one balanced transaction with its entries"""
     tx = await service.create_balanced_transaction(
         reference=payload.reference,
         description=payload.description,
@@ -53,6 +48,6 @@ async def create_transaction(
 async def get_transaction(
     transaction_id: int, service: LedgerServiceDep
 ) -> LedgerTransactionRead:
-    """I return one transaction and every entry attached to it"""
+    """One transaction with every attached entry"""
     tx = await service.get_transaction(transaction_id)
     return LedgerTransactionRead.model_validate(tx)

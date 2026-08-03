@@ -1,4 +1,4 @@
-"""I map ledger accounts — named buckets that entries debit or credit"""
+"""Ledger accounts — named buckets that entries debit or credit"""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class Account(Base):
-    """I represent one ledger account (cash, bank, travel expense, …)"""
+    """One ledger account (cash, bank, travel expense, …)"""
 
     __tablename__ = "accounts"
 
@@ -31,5 +31,5 @@ class Account(Base):
     entries: Mapped[list[LedgerEntry]] = relationship(back_populates="account")
 
     def label(self) -> str:
-        """I return a short human-readable label for logs and demos"""
+        """Short human-readable label for logs and demos"""
         return f"{self.code} — {self.name} ({self.currency})"

@@ -1,8 +1,8 @@
-"""I define bank statement shapes, including the CSV row contract
+"""Bank statement shapes and the CSV row contract
 
-I validate every CSV row with Pydantic rather than trusting the file, because
-a bank export is external input: dates come in three formats, amounts arrive
-with commas, and a single bad row must not abort the whole import
+Every CSV row is validated with Pydantic — bank exports are external input with
+mixed date formats, comma decimals, and the occasional bad row that must not
+abort the whole import.
 """
 
 from __future__ import annotations
@@ -14,12 +14,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from reckonflow.schemas.common import CurrencyCode, MoneyStr
 
-# I accept the formats real exports actually use, most specific first
+# Date formats seen in real exports, most specific first
 _DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d.%m.%Y", "%m/%d/%Y")
 
 
 class BankCsvRow(BaseModel):
-    """I am one validated row of an uploaded bank CSV"""
+    """One validated row from an uploaded bank CSV"""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -32,7 +32,7 @@ class BankCsvRow(BaseModel):
     @field_validator("booking_date", mode="before")
     @classmethod
     def parse_date(cls, value: Any) -> Any:
-        """I try each known layout instead of forcing banks to speak ISO"""
+        """Try each known layout instead of forcing banks to speak ISO"""
         if not isinstance(value, str):
             return value
         text = value.strip()
@@ -41,12 +41,12 @@ class BankCsvRow(BaseModel):
                 return datetime.strptime(text, fmt).date()
             except ValueError:
                 continue
-        raise ValueError(f"I cannot read {value!r} as a date")
+        raise ValueError(f"Cannot read {value!r} as a date")
 
     @field_validator("amount", mode="before")
     @classmethod
     def normalize_amount(cls, value: Any) -> Any:
-        """I strip thousands separators and convert the European decimal comma"""
+        """Strip thousands separators and normalize European decimal commas"""
         if not isinstance(value, str):
             return value
         text = value.strip().replace(" ", "").replace("\u00a0", "")
@@ -60,14 +60,14 @@ class BankCsvRow(BaseModel):
     @field_validator("external_id", mode="before")
     @classmethod
     def blank_to_none(cls, value: Any) -> Any:
-        """I treat an empty CSV cell as absent, not as an empty identifier"""
+        """Treat an empty CSV cell as absent, not as an empty identifier"""
         if isinstance(value, str) and not value.strip():
             return None
         return value
 
 
 class BankTransactionRead(BaseModel):
-    """I describe a stored bank line"""
+    """Stored bank line"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -83,14 +83,14 @@ class BankTransactionRead(BaseModel):
 
 
 class BankImportError(BaseModel):
-    """I report a rejected row so the uploader can fix the source file"""
+    """One rejected import row so the uploader can fix the source file"""
 
     line_number: int = Field(..., description="1-based row number in the CSV body")
     reason: str
 
 
 class BankImportResult(BaseModel):
-    """I summarize an import: what landed, what was a duplicate, what failed"""
+    """Import summary: inserted, duplicates skipped, and row-level errors"""
 
     received_rows: int
     inserted: int

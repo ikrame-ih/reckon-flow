@@ -1,6 +1,6 @@
-"""I enforce balanced double-entry writes and compute balances by aggregation
+"""Balanced double-entry writes and balances computed by aggregation
 
-I never UPDATE ledger entry amounts — corrections are new reversing entries
+Ledger entry amounts are never updated — corrections are new reversing entries.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from reckonflow.models import Account, LedgerEntry, LedgerTransaction
 
 
 class LedgerService:
-    """I own ledger business rules so routers stay thin"""
+    """Ledger business rules — keeps HTTP routers thin"""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -32,7 +32,7 @@ class LedgerService:
     async def create_account(
         self, *, code: str, name: str, currency: str = "EUR"
     ) -> Account:
-        """I open a new account, rejecting a code that is already taken"""
+        """Open an account, rejecting a code that is already taken"""
         account = Account(code=code, name=name, currency=currency.upper())
         self._session.add(account)
         try:
@@ -53,7 +53,7 @@ class LedgerService:
     async def list_accounts(
         self, *, limit: int = 100, offset: int = 0
     ) -> list[Account]:
-        """I page through accounts ordered by code so output is stable"""
+        """Page accounts ordered by code for stable output"""
         stmt = select(Account).order_by(Account.code).limit(limit).offset(offset)
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
@@ -65,11 +65,11 @@ class LedgerService:
         description: str,
         lines: Sequence[Mapping[str, Any]],
     ) -> LedgerTransaction:
-        """I insert a transaction only when debits equal credits
+        """Insert a transaction only when debits equal credits
 
-        Each line: account_id, debit, credit, optional currency, optional memo
-        I re-check the balance here even though the schema already did, because
-        the seed script and background jobs call me without going through HTTP
+        Each line: account_id, debit, credit, optional currency, optional memo.
+        Balance is re-checked here even though the schema already did — seed
+        scripts and background jobs call this without going through HTTP.
         """
         if len(lines) < 2:
             raise UnbalancedLedgerError("I need at least two ledger lines")
@@ -121,9 +121,7 @@ class LedgerService:
         return tx
 
     async def get_transaction(self, transaction_id: int) -> LedgerTransaction:
-        """I load a transaction with its entries eagerly, so no lazy IO happens
-        while FastAPI serializes the response
-        """
+        """Eager-load entries so serialization does not trigger lazy IO mid-response"""
         stmt = (
             select(LedgerTransaction)
             .options(selectinload(LedgerTransaction.entries))
@@ -136,7 +134,7 @@ class LedgerService:
         return tx
 
     async def account_balance(self, account_id: int) -> Decimal:
-        """I compute balance as SUM(debit) - SUM(credit) — never a stored column"""
+        """Balance is SUM(debit) - SUM(credit) — never a stored column"""
         await self.get_account(account_id)
         stmt = select(
             func.coalesce(func.sum(LedgerEntry.debit), 0),

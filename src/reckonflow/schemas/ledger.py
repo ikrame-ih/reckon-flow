@@ -1,8 +1,8 @@
-"""I define the double-entry ledger request/response shapes
+"""Double-entry ledger request/response shapes
 
-I validate the accounting invariant twice on purpose: here at the edge so the
-client gets a 422 with a clear message, and again in LedgerService so no other
-caller (seed script, background task) can bypass it
+Accounting invariant is validated twice on purpose: here at the edge (422 with
+a clear message) and again in LedgerService so seed scripts and jobs cannot
+bypass it.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from reckonflow.schemas.common import CurrencyCode, MoneyStr
 
 
 class LedgerLineCreate(BaseModel):
-    """I am one debit-or-credit line inside a proposed transaction"""
+    """One debit-or-credit line inside a proposed transaction"""
 
     account_id: int = Field(..., examples=[1])
     debit: MoneyStr = Field("0", examples=["120.50"])
@@ -26,10 +26,10 @@ class LedgerLineCreate(BaseModel):
 
     @model_validator(mode="after")
     def check_single_sided(self) -> LedgerLineCreate:
-        """I reject lines that are both a debit and a credit, or neither
+        """Reject lines that are both debit and credit, or neither
 
-        A line that touches both sides hides the direction of the money, and a
-        line with two zeros is noise that would still pass the balance check
+        A line touching both sides hides money direction; a zero-zero line is
+        noise that would still pass the balance check.
         """
         debit = Decimal(self.debit)
         credit = Decimal(self.credit)
@@ -43,7 +43,7 @@ class LedgerLineCreate(BaseModel):
 
 
 class LedgerTransactionCreate(BaseModel):
-    """I am a whole transaction: the only unit that may be written"""
+    """Whole transaction — the only unit that may be written"""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -64,7 +64,7 @@ class LedgerTransactionCreate(BaseModel):
         ...,
         min_length=1,
         max_length=64,
-        description="Unique business reference; I use it to spot re-posts",
+        description="Unique business reference for spotting re-posts",
         examples=["TRV-2026-0001"],
     )
     description: str = Field(..., min_length=1, max_length=255)
@@ -72,7 +72,7 @@ class LedgerTransactionCreate(BaseModel):
 
     @model_validator(mode="after")
     def check_balanced(self) -> LedgerTransactionCreate:
-        """I enforce sum(debit) == sum(credit) before the request reaches the DB"""
+        """Enforce sum(debit) == sum(credit) before the request reaches the DB"""
         total_debit = sum((Decimal(line.debit) for line in self.lines), Decimal("0"))
         total_credit = sum((Decimal(line.credit) for line in self.lines), Decimal("0"))
         if total_debit != total_credit:
@@ -83,7 +83,7 @@ class LedgerTransactionCreate(BaseModel):
 
 
 class LedgerEntryRead(BaseModel):
-    """I describe one persisted ledger line"""
+    """One persisted ledger line"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -96,7 +96,7 @@ class LedgerEntryRead(BaseModel):
 
 
 class LedgerTransactionRead(BaseModel):
-    """I describe a persisted transaction together with its entries"""
+    """Persisted transaction with its entries"""
 
     model_config = ConfigDict(from_attributes=True)
 

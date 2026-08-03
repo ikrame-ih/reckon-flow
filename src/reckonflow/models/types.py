@@ -1,9 +1,8 @@
-"""I define column types that adapt to the database behind them
+"""Column types that adapt to the database behind them
 
-I store embeddings as JSON everywhere by default so a native Windows
-PostgreSQL install works without the pgvector extension. When I later run
-on pgvector/pgvector Docker, I can switch this dialect branch back to Vector
-without changing the Python value type (list[float])
+Embeddings default to JSON so native Windows PostgreSQL works without pgvector.
+On pgvector/pgvector Docker the dialect branch can switch to Vector without
+changing the Python value type (list[float]).
 """
 
 from __future__ import annotations
@@ -17,11 +16,7 @@ DEFAULT_EMBEDDING_DIMENSIONS = 384
 
 
 class EmbeddingVector(TypeDecorator[list[float]]):
-    """I persist an embedding as JSON so demos do not require pgvector
-
-    Reconciliation already works on amount, date, and RapidFuzz; embeddings
-    only sharpen ranks when present
-    """
+    """Persist embeddings as JSON — demos do not require pgvector"""
 
     impl = JSON
     cache_ok = True

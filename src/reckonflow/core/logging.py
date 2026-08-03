@@ -1,7 +1,4 @@
-"""I set up structured logging with structlog
-
-I emit field-rich logs so I can search by request id, level, and timestamp later
-"""
+"""Structured logging via structlog — field-rich logs for search by request id"""
 
 import logging
 import sys
@@ -10,7 +7,7 @@ import structlog
 
 
 def setup_logging(*, debug: bool = False) -> None:
-    """I configure console-friendly logs in debug and JSON logs otherwise"""
+    """Console-friendly logs in debug, JSON otherwise"""
     level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(format="%(message)s", stream=sys.stdout, level=level)
 
@@ -54,8 +51,7 @@ def setup_logging(*, debug: bool = False) -> None:
 
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
-    """I return a named structured logger"""
-    # structlog types get_logger as Any; I narrow it once here so every caller
-    # gets real completion and mypy --strict stays happy
+    """Named structured logger"""
+    # Narrow structlog's Any return once so callers get completion under --strict
     logger: structlog.stdlib.BoundLogger = structlog.get_logger(name)
     return logger

@@ -1,8 +1,4 @@
-"""I aggregate every API v1 router behind one prefix
-
-Keeping the assembly here means main.py mounts a single object, and adding a
-resource is one import plus one include_router
-"""
+"""Aggregate API v1 routers — main.py mounts this single object."""
 
 from fastapi import APIRouter
 

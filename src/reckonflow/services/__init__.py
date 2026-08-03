@@ -1,1 +1,1 @@
-"""I will put business logic services here from Phase 1 onward"""
+"""Business logic services (ledger, travel, bank, receipts, reconciliation)."""

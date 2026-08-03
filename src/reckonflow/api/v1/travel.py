@@ -1,4 +1,4 @@
-"""I expose the travel request routes"""
+"""Travel request routes"""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/travel-requests", tags=["travel"])
 async def create_travel_request(
     payload: TravelRequestCreate, service: TravelServiceDep
 ) -> TravelRequestRead:
-    """I record a trip request together with its pending approval"""
+    """Record a trip request with its pending approval"""
     request = await service.create_travel_request(
         employee_name=payload.employee_name,
         destination=payload.destination,
@@ -51,7 +51,7 @@ async def list_travel_requests(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> list[TravelRequestRead]:
-    """I page travel requests newest first"""
+    """Page travel requests, newest first"""
     requests = await service.list_travel_requests(limit=limit, offset=offset)
     return [TravelRequestRead.model_validate(request) for request in requests]
 
@@ -65,6 +65,6 @@ async def list_travel_requests(
 async def get_travel_request(
     travel_request_id: int, service: TravelServiceDep
 ) -> TravelRequestRead:
-    """I return one travel request with its approval"""
+    """One travel request with its approval"""
     request = await service.get_travel_request(travel_request_id)
     return TravelRequestRead.model_validate(request)

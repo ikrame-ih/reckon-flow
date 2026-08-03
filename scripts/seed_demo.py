@@ -1,8 +1,10 @@
-"""I seed demo data so anyone can try the API without inventing rows by hand
+"""Seed demo data for trying the API without hand-built rows
 
-Run after Postgres is up:
-  docker compose up -d
-  uv run alembic upgrade head   # or let create_all below cover local demos
+Idempotent: exits when account CASH already exists.
+
+Free Render has no shell — seed Neon from your laptop:
+
+  $env:DATABASE_URL = "<paste Neon URI>"
   uv run python scripts/seed_demo.py
 """
 
@@ -12,8 +14,10 @@ import asyncio
 from datetime import date, timedelta
 from decimal import Decimal
 
+from sqlalchemy import select
+
 from reckonflow.core.db import SessionLocal, engine
-from reckonflow.models import Base
+from reckonflow.models import Account, Base
 from reckonflow.models.travel import ApprovalStatus
 from reckonflow.services.bank import BankService
 from reckonflow.services.ledger import LedgerService
@@ -25,6 +29,11 @@ async def seed() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
     async with SessionLocal() as session:
+        existing = await session.scalar(select(Account).where(Account.code == "CASH"))
+        if existing is not None:
+            print("Seed skipped: demo accounts already exist (CASH found)")
+            return
+
         ledger = LedgerService(session)
         travel = TravelService(session)
         bank = BankService(session)

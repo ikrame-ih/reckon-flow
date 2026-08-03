@@ -1,7 +1,4 @@
-"""I group Pydantic request/response schemas
-
-I re-export the common pieces so routers import from one predictable place
-"""
+"""Pydantic request/response schemas — re-exports common types for routers."""
 
 from reckonflow.schemas.common import CurrencyCode, ErrorResponse, MoneyStr
 

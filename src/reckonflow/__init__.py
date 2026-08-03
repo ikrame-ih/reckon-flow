@@ -1,3 +1,3 @@
-"""I hold the ReckonFlow package version"""
+"""ReckonFlow package version."""
 
 __version__ = "0.1.0"

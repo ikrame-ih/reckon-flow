@@ -1,9 +1,4 @@
-"""I test the fusion maths on its own, with no database and no ORM
-
-Reciprocal Rank Fusion is the piece I most need to be able to reason about:
-if the ranking arithmetic is wrong, every suggestion is subtly wrong and no
-integration test would tell me why
-"""
+"""RRF fusion math in isolation — no database"""
 
 from __future__ import annotations
 
@@ -66,7 +61,7 @@ def test_rrf_rejects_non_positive_k() -> None:
 
 
 def test_small_k_makes_the_top_rank_dominate() -> None:
-    """k controls how much first place is worth; I picked 60 to flatten it"""
+    """k=60 flattens how much first place dominates second"""
     flat = reciprocal_rank_fusion({"a": [1, 2]}, k=60)
     sharp = reciprocal_rank_fusion({"a": [1, 2]}, k=1)
 
@@ -92,7 +87,7 @@ def test_normalized_confidence_stays_within_zero_and_one() -> None:
 def test_cosine_similarity_basics() -> None:
     assert cosine_similarity([1.0, 0.0], [1.0, 0.0]) == pytest.approx(1.0)
     assert cosine_similarity([1.0, 0.0], [0.0, 1.0]) == pytest.approx(0.0)
-    # I return 0.0 rather than raising when a vector is missing or mismatched
+    # Missing or mismatched vectors → 0.0, not an exception
     assert cosine_similarity([], [1.0]) == 0.0
     assert cosine_similarity([1.0, 2.0], [1.0]) == 0.0
     assert cosine_similarity([0.0, 0.0], [1.0, 1.0]) == 0.0

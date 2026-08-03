@@ -1,9 +1,6 @@
-"""I test receipt extraction without ever calling a model
+"""Receipt extraction without calling a model
 
-Two things matter here. First, the stub must actually work, because it is what
-runs in CI and in an offline demo. Second, and more important, the extraction
-schema must refuse anything that is not plain receipt data — that is the
-containment described in ADR 002
+Stub must work for CI/offline demos. Schema must refuse non-receipt data (ADR 002).
 """
 
 from __future__ import annotations
@@ -49,7 +46,7 @@ async def test_stub_reads_a_normal_receipt() -> None:
 
 
 async def test_stub_refuses_a_receipt_with_no_total() -> None:
-    """Without a total there is nothing to reconcile, so I fail loudly"""
+    """No total means nothing to reconcile — extraction should fail"""
     with pytest.raises(ExtractionError):
         await StubReceiptExtractor().extract(
             raw_text="Hotel Adlon\nThank you", filename="broken.txt"

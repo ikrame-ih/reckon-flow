@@ -1,8 +1,7 @@
-"""I store uploaded receipts and record what extraction produced
+"""Store uploaded receipts and record extraction results
 
-I keep the bytes on disk and only a path in the database. Receipts are
-attachments, not relations: putting megabytes in Postgres makes every backup,
-replica, and migration slower for no query benefit
+Bytes live on disk; Postgres only keeps a path. Large attachments do not
+belong in the database — backups and migrations stay lighter that way
 """
 
 from __future__ import annotations
@@ -21,19 +20,19 @@ from reckonflow.models import Expense, Receipt
 from reckonflow.models.travel import ReceiptStatus
 from reckonflow.schemas.receipt import ReceiptExtraction
 
-# I refuse anything outside this set in a filename, so a crafted upload name
-# such as ../../etc/passwd cannot escape the storage directory
+# Strip path separators and odd characters so names like ../../etc/passwd
+# cannot escape the storage directory when joined
 _SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 
 def safe_filename(name: str) -> str:
-    """I reduce an uploaded name to something safe to join onto a path"""
+    """Reduce an upload name to a safe basename before joining onto a path"""
     cleaned = _SAFE_NAME_RE.sub("_", Path(name).name).strip("._") or "receipt"
     return cleaned[:120]
 
 
 class ReceiptService:
-    """I own receipt persistence and the extraction status transitions"""
+    """Persist uploads and drive extraction status through its lifecycle"""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -47,16 +46,16 @@ class ReceiptService:
         content: bytes,
         expense_id: int | None = None,
     ) -> Receipt:
-        """I write the file, then create the row that points at it"""
+        """Write bytes to disk first, then insert the row that references them"""
         if expense_id is not None:
             expense = await self._session.get(Expense, expense_id)
             if expense is None:
                 raise NotFoundError(f"Expense {expense_id} not found")
 
         self._storage.mkdir(parents=True, exist_ok=True)
-        # I prefix a uuid so two people uploading receipt.pdf never collide
+        # Prefix a uuid so two people uploading receipt.pdf never collide
         stored_name = f"{uuid.uuid4().hex}_{safe_filename(filename)}"
-        path = self._storage / stored_name
+        path = self._resolve_storage_path(self._storage / stored_name)
         path.write_bytes(content)
 
         receipt = Receipt(
@@ -90,10 +89,10 @@ class ReceiptService:
     async def save_extraction(
         self, receipt_id: int, extraction: ReceiptExtraction
     ) -> Receipt:
-        """I store the validated extraction as JSON next to the file path
+        """Persist validated extraction JSON beside the file path
 
-        I keep it as a JSON document rather than columns because the shape is
-        the model's contract, and I want the raw result auditable as-is
+        JSON keeps the LLM contract intact and auditable; normalizing into
+        columns would freeze a schema that still evolves
         """
         receipt = await self.get_receipt(receipt_id)
         receipt.extracted_json = extraction.model_dump_json()
@@ -109,8 +108,16 @@ class ReceiptService:
         await self._session.flush()
         return receipt
 
+    def _resolve_storage_path(self, path: Path) -> Path:
+        """Refuse any path that escapes the configured storage directory"""
+        storage_root = self._storage.resolve()
+        resolved = path.resolve()
+        if not resolved.is_relative_to(storage_root):
+            raise NotFoundError("Stored file path escapes the storage directory")
+        return resolved
+
     def read_extraction(self, receipt: Receipt) -> ReceiptExtraction | None:
-        """I re-validate stored JSON on the way out, never trusting the column"""
+        """Re-validate stored JSON on the way out — never trust the column blindly"""
         if not receipt.extracted_json:
             return None
         try:
@@ -118,14 +125,13 @@ class ReceiptService:
         except Exception:
             return None
 
-    @staticmethod
-    def read_text(receipt: Receipt) -> str:
-        """I read the stored bytes as text
+    def read_text(self, receipt: Receipt) -> str:
+        """Read stored bytes as text for extraction
 
-        Today I only handle text-like receipts; a real OCR step (Tesseract or a
-        vision model) plugs in here without changing anything downstream
+        Text-like receipts work today; OCR or a vision model can plug in here
+        later without changing the rest of the pipeline
         """
-        path = Path(receipt.storage_path)
+        path = self._resolve_storage_path(Path(receipt.storage_path))
         if not path.exists():
             raise NotFoundError(f"Stored file for receipt {receipt.id} is missing")
         return path.read_bytes().decode("utf-8", errors="replace")

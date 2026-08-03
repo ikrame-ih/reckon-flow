@@ -1,8 +1,4 @@
-"""I test the approval state machine
-
-The rule I care about most: money can only be marked paid on a request that
-was actually approved. Everything else here protects that one edge
-"""
+"""Approval state machine — paid only after approved"""
 
 from __future__ import annotations
 

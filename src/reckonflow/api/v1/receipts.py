@@ -1,10 +1,4 @@
-"""I expose receipt upload and extraction lookup
-
-The upload returns **202 Accepted**, not 200. Extraction calls an LLM on a
-free tier: it can take seconds and it can be throttled. Blocking the upload on
-that would make the client's timeout depend on someone else's quota, so I
-accept the file, hand back a poll URL, and extract in the background
-"""
+"""Receipt upload and extraction lookup — 202 Accepted, then background LLM"""
 
 from __future__ import annotations
 
@@ -60,12 +54,12 @@ async def upload_receipt(
     file: UploadFile = File(..., description="Receipt file (text or OCR output)"),
     expense_id: int | None = Form(None, description="Expense this receipt documents"),
 ) -> ReceiptAccepted:
-    """I accept a receipt, persist it, and queue extraction"""
+    """Persist upload and queue background extraction"""
     content = await file.read()
     if len(content) > MAX_RECEIPT_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"I accept at most {MAX_RECEIPT_BYTES} bytes per receipt",
+            detail=f"Upload limit is {MAX_RECEIPT_BYTES} bytes per receipt",
         )
 
     receipt = await service.store_upload(
@@ -90,7 +84,7 @@ async def upload_receipt(
     responses={404: {"model": ErrorResponse, "description": "Unknown receipt"}},
 )
 async def get_receipt(receipt_id: int, service: ReceiptServiceDep) -> ReceiptRead:
-    """I report where a receipt is in the extraction pipeline"""
+    """Receipt status in the extraction pipeline"""
     receipt = await service.get_receipt(receipt_id)
     return ReceiptRead.model_validate(receipt)
 
@@ -108,7 +102,7 @@ async def get_receipt(receipt_id: int, service: ReceiptServiceDep) -> ReceiptRea
 async def get_receipt_extraction(
     receipt_id: int, service: ReceiptServiceDep
 ) -> ReceiptExtractionRead:
-    """I return the structured data extracted from one receipt"""
+    """Structured extraction for one receipt"""
     receipt = await service.get_receipt(receipt_id)
     return ReceiptExtractionRead(
         receipt_id=receipt.id,

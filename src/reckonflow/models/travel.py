@@ -1,4 +1,4 @@
-"""I map travel requests, approvals, expenses, receipts, and bank lines"""
+"""ORM models for travel, approvals, expenses, receipts, and bank lines"""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ class MatchStatus(StrEnum):
 
 
 class TravelRequest(Base):
-    """I capture a trip pre-request before money is spent"""
+    """Trip pre-request before money is spent"""
 
     __tablename__ = "travel_requests"
 
@@ -66,7 +66,7 @@ class TravelRequest(Base):
 
 
 class Approval(Base):
-    """I track the pending → approved/rejected → paid state machine"""
+    """pending → approved/rejected → paid state machine"""
 
     __tablename__ = "approvals"
 
@@ -85,7 +85,7 @@ class Approval(Base):
 
 
 class Expense(Base):
-    """I represent a spend that may later match a bank line and a receipt"""
+    """Spend that may later match a bank line and a receipt"""
 
     __tablename__ = "expenses"
 
@@ -99,8 +99,7 @@ class Expense(Base):
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     expense_date: Mapped[date] = mapped_column(Date)
     match_status: Mapped[str] = mapped_column(String(32), default=MatchStatus.UNMATCHED)
-    # I cache the description embedding so reconciliation does not re-embed
-    # the same expense on every suggestion request
+    # Cache description embedding so reconciliation does not re-embed every request
     embedding: Mapped[list[float] | None] = mapped_column(
         EmbeddingVector(), nullable=True
     )
@@ -122,7 +121,7 @@ class Expense(Base):
 
 
 class Receipt(Base):
-    """I store an uploaded receipt file and optional structured extraction"""
+    """Uploaded receipt file and optional structured extraction"""
 
     __tablename__ = "receipts"
 
@@ -144,7 +143,7 @@ class Receipt(Base):
 
 
 class BankTransaction(Base):
-    """I store one normalized bank CSV row ready for reconciliation"""
+    """One normalized bank CSV row ready for reconciliation"""
 
     __tablename__ = "bank_transactions"
 
@@ -160,8 +159,7 @@ class BankTransaction(Base):
     matched_expense_id: Mapped[int | None] = mapped_column(
         ForeignKey("expenses.id"), nullable=True, unique=True
     )
-    # I keep the embedding optional: reconciliation works on amount, date, and
-    # RapidFuzz alone, and only sharpens when embeddings have been backfilled
+    # Embeddings optional — amount, date, and RapidFuzz suffice; vectors sharpen ranks
     embedding: Mapped[list[float] | None] = mapped_column(
         EmbeddingVector(), nullable=True
     )

@@ -1,7 +1,6 @@
-"""I own the shared async Redis client
+"""Shared async Redis client — one lazy client per process.
 
-I keep one lazily created client per process because redis-py already pools
-connections internally: creating a client per request would throw that away
+redis-py pools connections internally; a client per request would waste that.
 """
 
 from __future__ import annotations
@@ -14,11 +13,7 @@ _client: Redis | None = None
 
 
 def get_redis() -> Redis:
-    """I return the process-wide Redis client, creating it on first use
-
-    I decode responses so callers work with str, not bytes — the only thing I
-    store is JSON
-    """
+    """Process-wide Redis client, created on first use (decode_responses for JSON)"""
     global _client
     if _client is None:
         settings = get_settings()
@@ -32,7 +27,7 @@ def get_redis() -> Redis:
 
 
 async def close_redis() -> None:
-    """I release the connection pool during application shutdown"""
+    """Release connection pool during application shutdown"""
     global _client
     if _client is not None:
         await _client.aclose()
@@ -40,7 +35,7 @@ async def close_redis() -> None:
 
 
 async def redis_ping() -> bool:
-    """I report whether Redis answers, without raising into a health check"""
+    """Whether Redis answers — never raises into a health check"""
     try:
         return bool(await get_redis().ping())
     except Exception:

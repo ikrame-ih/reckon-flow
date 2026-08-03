@@ -1,21 +1,21 @@
-"""I define domain exceptions the API layer can map to HTTP status codes"""
+"""Domain exceptions mapped to HTTP status codes by the API layer"""
 
 
 class ReckonFlowError(Exception):
-    """I am the base error for expected business failures"""
+    """Base error for expected business failures"""
 
 
 class UnbalancedLedgerError(ReckonFlowError):
-    """I signal a transaction whose debits and credits do not cancel out"""
+    """Transaction debits and credits do not cancel out"""
 
 
 class NotFoundError(ReckonFlowError):
-    """I signal a missing domain entity"""
+    """Requested domain entity does not exist"""
 
 
 class InvalidStateTransitionError(ReckonFlowError):
-    """I signal an illegal approval or expense status change"""
+    """Illegal approval or expense status change"""
 
 
 class ConflictError(ReckonFlowError):
-    """I signal a concurrency or uniqueness conflict"""
+    """Concurrency or uniqueness conflict"""

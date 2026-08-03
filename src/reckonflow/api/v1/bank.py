@@ -1,4 +1,4 @@
-"""I expose bank statement import and lookup routes"""
+"""Bank statement import and lookup routes"""
 
 from __future__ import annotations
 
@@ -10,8 +10,7 @@ from reckonflow.schemas.common import ErrorResponse
 
 router = APIRouter(prefix="/bank", tags=["bank"])
 
-# I cap the upload so a hostile or accidental multi-gigabyte file cannot
-# exhaust memory while I hold the decoded text
+# Cap upload size so a huge CSV cannot exhaust memory during decode
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 
@@ -33,12 +32,12 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 async def upload_bank_csv(
     service: BankServiceDep, file: UploadFile = File(...)
 ) -> BankImportResult:
-    """I ingest one CSV statement and report exactly what happened"""
+    """Ingest one CSV and report inserted, skipped, and failed rows"""
     content = await file.read()
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"I accept at most {MAX_UPLOAD_BYTES} bytes per upload",
+            detail=f"Upload limit is {MAX_UPLOAD_BYTES} bytes",
         )
     return await service.import_csv(content)
 
@@ -55,7 +54,7 @@ async def list_bank_transactions(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> list[BankTransactionRead]:
-    """I page imported bank lines"""
+    """Page imported bank lines"""
     rows = await service.list_transactions(
         match_status=match_status, limit=limit, offset=offset
     )

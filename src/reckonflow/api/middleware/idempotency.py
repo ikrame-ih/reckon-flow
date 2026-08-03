@@ -1,22 +1,17 @@
-"""I make retried mutating requests safe with an Idempotency-Key
+"""Safe retries for mutating requests via Idempotency-Key
 
-Why this exists: a client that posts an expense, times out, and retries must
-not create two expenses. The network cannot tell "the request was lost" apart
-from "the response was lost", so the *client* supplies a key and I guarantee
-that the same key produces the same effect and the same body
+Why: a client that posts an expense, times out, and retries must not create
+two expenses. The network cannot distinguish a lost request from a lost
+response, so the client supplies a key and the server guarantees the same key
+yields the same effect and body.
 
-How it works, per mutating request that carries the header:
+Per mutating request with the header:
+1. SET key <in-progress> NX EX ttl — atomic claim
+2. On success, run the route and overwrite with captured status/headers/body
+3. On failure: in-progress → 409; finished → replay stored response verbatim
 
-1. `SET key <in-progress> NX EX ttl` — one atomic call claims the key
-2. If the claim succeeds, I run the route and overwrite the key with the
-   captured status, headers, and body
-3. If the claim fails, the key already exists:
-   - still in progress  -> 409, because the first call has not finished
-   - finished           -> I replay the stored response verbatim
-
-I deliberately fail **open**: if Redis is unreachable I log and let the
-request through. A cache outage should degrade the retry guarantee, not take
-the whole API down
+Fail-open when Redis is unreachable — a cache outage should degrade the retry
+guarantee, not take the API down.
 See docs/adr/003-redis-idempotency.md
 """
 
@@ -42,8 +37,7 @@ REPLAY_HEADER = "Idempotency-Replayed"
 MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 IN_PROGRESS = "__in_progress__"
 
-# I never replay these: they describe the transport of the original response,
-# not its meaning, and copying them corrupts the replayed body
+# Transport headers — not part of response meaning; copying them corrupts replay
 _SKIPPED_HEADERS = frozenset({"content-length", "transfer-encoding", "connection"})
 
 
@@ -54,11 +48,10 @@ def build_cache_key(
     *,
     prefix: str = "reckonflow:",
 ) -> str:
-    """I scope the key by app prefix, method, path, and a hash of the body
+    """Scope cache key by prefix, method, path, and body hash
 
-    The prefix lets me share one Upstash free-tier database with another
-    project without key collisions. Scoping by route stops one key from
-    accidentally replaying an unrelated endpoint's response
+    Prefix avoids collisions when sharing one Redis instance. Scoping by route
+    stops one key from replaying an unrelated endpoint's response.
     """
     digest = hashlib.sha256(body).hexdigest()[:16]
     return (
@@ -68,7 +61,7 @@ def build_cache_key(
 
 
 class IdempotencyMiddleware(BaseHTTPMiddleware):
-    """I cache and replay responses for keyed mutating requests"""
+    """Cache and replay responses for keyed mutating requests"""
 
     def __init__(
         self,
@@ -96,8 +89,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
-        # I must read the body here to hash it; Starlette caches it internally
-        # so the downstream route can still read it afterwards
+        # Read body here for hashing; Starlette caches it for downstream routes
         body = await request.body()
         cache_key = build_cache_key(
             request, idempotency_key, body, prefix=self._key_prefix
@@ -123,7 +115,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         return _rebuild(captured)
 
     async def _replay(self, redis: Redis, cache_key: str) -> Response | None:
-        """I return the stored response, or a 409 while the first call runs"""
+        """Stored response, or 409 while the first call is still running"""
         try:
             stored = await redis.get(cache_key)
         except Exception as exc:
@@ -131,7 +123,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             return None
 
         if stored is None:
-            # The key expired between SET NX and GET; I let the request run
+            # Key expired between SET NX and GET — let the request proceed
             return None
         if stored == IN_PROGRESS:
             return JSONResponse(
@@ -157,7 +149,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
     async def _store(
         self, redis: Redis, cache_key: str, captured: CapturedResponse
     ) -> None:
-        """I persist the response, keeping the TTL the claim already set"""
+        """Persist response, keeping the TTL the claim already set"""
         try:
             await redis.set(cache_key, json.dumps(captured), ex=self._ttl)
         except Exception as exc:
@@ -165,7 +157,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
 
 class CapturedResponse(TypedDict):
-    """I am the replayable snapshot I keep in Redis"""
+    """Replayable response snapshot stored in Redis"""
 
     status_code: int
     headers: dict[str, str]
@@ -173,7 +165,7 @@ class CapturedResponse(TypedDict):
 
 
 async def _capture(response: Response) -> CapturedResponse:
-    """I drain a (possibly streaming) response into a replayable dict"""
+    """Drain a (possibly streaming) response into a replayable dict"""
     chunks: list[bytes] = []
     body_iterator = getattr(response, "body_iterator", None)
     if body_iterator is not None:
@@ -191,14 +183,13 @@ async def _capture(response: Response) -> CapturedResponse:
     return CapturedResponse(
         status_code=response.status_code,
         headers=headers,
-        # I store text because Redis holds JSON; binary downloads are not
-        # mutating endpoints, so this trade is safe here
+        # Text storage — Redis holds JSON; mutating endpoints are not binary downloads
         body=body.decode("utf-8", errors="replace"),
     )
 
 
 def _rebuild(captured: CapturedResponse) -> Response:
-    """I turn a captured snapshot back into a real response"""
+    """Rebuild a live response from a captured snapshot"""
     return Response(
         content=captured["body"].encode("utf-8"),
         status_code=captured["status_code"],

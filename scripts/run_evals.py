@@ -1,7 +1,7 @@
-"""I score receipt extraction against annotated fixtures
+"""Score receipt extraction against annotated fixtures
 
 Run: uv run python scripts/run_evals.py
-Uses the stub extractor when GROQ_API_KEY is empty so CI stays offline
+Uses stub extractor when GROQ_API_KEY is empty so CI stays offline.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from reckonflow.ai import get_receipt_extractor
 
 FIXTURES = Path(__file__).resolve().parents[1] / "evals" / "receipts"
 
-# I score these fields; missing optional fields do not fail the case
+# Scored fields — missing optional expected fields do not fail the case
 SCORED_FIELDS = (
     "vendor",
     "receipt_date",

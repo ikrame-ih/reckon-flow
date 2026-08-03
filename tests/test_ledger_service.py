@@ -1,7 +1,6 @@
-"""I test the ledger invariant: a transaction must balance or it must not exist
+"""Ledger invariant — unbalanced transactions must not persist
 
-I check it at both layers, because they protect against different callers —
-the schema protects the HTTP client, the service protects everything else
+Checked at schema (HTTP) and service (seed/jobs) layers against different callers.
 """
 
 from __future__ import annotations
@@ -65,7 +64,7 @@ async def test_unbalanced_transaction_raises_and_writes_nothing(
             ],
         )
 
-    # I check the table directly: a rejected transaction must leave no trace
+    # Rejected transaction must leave no rows in the ledger tables
     count = await session.scalar(select(func.count()).select_from(LedgerEntry))
     assert count == 0
 
@@ -123,7 +122,7 @@ async def test_duplicate_account_code_conflicts(session: AsyncSession) -> None:
 async def test_balance_is_aggregated_over_many_transactions(
     session: AsyncSession,
 ) -> None:
-    """I never store a running balance, so I prove the aggregate adds up"""
+    """Balance is always aggregated — never stored"""
     service = LedgerService(session)
     expense_id, bank_id = await _two_accounts(service)
 

@@ -1,4 +1,4 @@
-"""I re-export ORM models so Alembic and services import from one place"""
+"""Re-export ORM models for Alembic and services."""
 
 from reckonflow.models.account import Account
 from reckonflow.models.base import Base

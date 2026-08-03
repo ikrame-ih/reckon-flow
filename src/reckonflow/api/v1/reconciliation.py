@@ -1,9 +1,4 @@
-"""I expose reconciliation: suggest candidates, then confirm one
-
-I keep suggestion and confirmation as two calls on purpose. Reconciliation is
-a decision with money attached, so the default is that a human sees the
-evidence and commits it; `auto` exists for the cases the engine is sure about
-"""
+"""Reconciliation — suggest candidates, then confirm with human oversight"""
 
 from __future__ import annotations
 
@@ -46,7 +41,7 @@ async def suggest_matches(
     limit: int = Query(5, ge=1, le=25),
     date_window_days: int | None = Query(None, ge=0, le=90),
 ) -> MatchSuggestionResponse:
-    """I return ranked bank candidates for one expense"""
+    """Ranked bank candidates for one expense"""
     expense, ranked, considered = await service.suggest_matches(
         expense_id, limit=limit, date_window_days=date_window_days
     )
@@ -95,7 +90,7 @@ async def suggest_matches(
 async def confirm_match(
     expense_id: int, payload: MatchConfirm, service: ReconciliationServiceDep
 ) -> MatchResult:
-    """I commit one reviewer-confirmed match"""
+    """Commit a reviewer-confirmed match"""
     expense, bank_row = await service.confirm_match(
         expense_id, payload.bank_transaction_id
     )
@@ -118,7 +113,7 @@ async def confirm_match(
     responses={404: {"model": ErrorResponse, "description": "Unknown expense"}},
 )
 async def auto_match(expense_id: int, service: ReconciliationServiceDep) -> MatchResult:
-    """I match automatically or park the expense for a human"""
+    """Auto-match when confident, otherwise park for review"""
     expense, bank_transaction_id = await service.auto_reconcile(expense_id)
     return MatchResult(
         expense_id=expense.id,

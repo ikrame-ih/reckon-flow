@@ -1,9 +1,8 @@
-"""I provide the fixtures every test shares
+"""Shared test fixtures
 
-I run the database tests on in-memory SQLite so `uv run pytest` needs no
-Docker, no Postgres, and no network. The models are written to create cleanly
-on both dialects — the embedding column falls back to JSON, and the FOR UPDATE
-clause is only emitted where the dialect implements it
+Database tests use in-memory SQLite so pytest needs no Docker or network.
+Models create cleanly on both dialects — embeddings fall back to JSON, and
+FOR UPDATE is only emitted where supported.
 """
 
 from __future__ import annotations
@@ -23,10 +22,10 @@ from reckonflow.models import Base
 
 @pytest_asyncio.fixture
 async def session() -> AsyncIterator[AsyncSession]:
-    """I hand each test a fresh schema on its own in-memory database
+    """Fresh in-memory schema per test
 
-    StaticPool keeps every checkout on the same connection; without it each
-    connection would get its own empty `:memory:` database
+    StaticPool keeps every checkout on one connection; otherwise each connection
+    gets its own empty :memory: database.
     """
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
@@ -45,10 +44,9 @@ async def session() -> AsyncIterator[AsyncSession]:
 
 @pytest.fixture
 def client(session: AsyncSession) -> Iterator[TestClient]:
-    """I give a TestClient whose routes share the test's SQLite session
+    """TestClient sharing the test SQLite session via get_db override
 
-    I override get_db instead of pointing the app at a test database, so the
-    test can inspect rows through the same session the request just wrote
+    Override lets the test inspect rows through the same session the request wrote.
     """
 
     async def override_get_db() -> AsyncIterator[AsyncSession]:

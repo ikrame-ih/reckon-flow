@@ -1,19 +1,9 @@
-"""I extract receipts with a Groq-hosted model through PydanticAI
+"""Groq-hosted receipt extraction via PydanticAI
 
-Two choices worth explaining:
-
-**Groq free tier, not a paid API.** This is a portfolio project; a reviewer
-must be able to run it with a free key, and the whole flow must still work
-with no key at all. The provider sits behind ReceiptExtractor precisely so
-that swap costs one line
-
-**PydanticAI with output_type=ReceiptExtraction.** The model does not hand me
-prose I then parse — it must produce something that validates against a strict
-schema with `extra="forbid"`. Anything else is a failure, not a partial result
-
-The prompt states that receipt text is data. The real defence is not the
-prompt though, it is the schema: there is no field the model can fill in to
-approve, pay, or delete anything
+Groq free tier keeps the portfolio runnable without paid API keys; the stub
+works with no key. PydanticAI output_type=ReceiptExtraction with extra=forbid
+means invalid output is failure, not partial prose to parse. Real defence against
+prompt injection is the schema — no field can approve, pay, or delete anything.
 """
 
 from __future__ import annotations
@@ -51,10 +41,7 @@ required output schema. Rules you must follow:
 
 
 def _is_rate_limited(error: BaseException) -> bool:
-    """I retry only on throttling, never on a bad request or a schema failure
-
-    Retrying a 400 just burns quota — the second attempt fails identically
-    """
+    """Retry only on throttling — not on bad requests or schema failures"""
     status = getattr(error, "status_code", None) or getattr(error, "status", None)
     if status == 429:
         return True
@@ -66,20 +53,20 @@ def _is_rate_limited(error: BaseException) -> bool:
 
 
 class GroqReceiptExtractor:
-    """I call a Groq free-tier model and validate its structured output"""
+    """Groq free-tier model with validated structured output"""
 
     name = "groq"
 
     def __init__(self, *, api_key: str, model: str, max_attempts: int = 4) -> None:
         if not api_key:
-            raise ExtractionError("I need GROQ_API_KEY to call the model")
+            raise ExtractionError("GROQ_API_KEY is required to call the model")
         self._api_key = api_key
         self._model = model
         self._max_attempts = max_attempts
         self._agent: Any | None = None
 
     def _build_agent(self) -> Any:
-        """I build the PydanticAI agent lazily so importing me costs nothing"""
+        """Lazy PydanticAI agent — importing this module stays cheap"""
         if self._agent is not None:
             return self._agent
         try:
@@ -100,10 +87,9 @@ class GroqReceiptExtractor:
         return self._agent
 
     async def extract(self, *, raw_text: str, filename: str) -> ReceiptExtraction:
-        """I ask the model for structured data, retrying only on 429"""
+        """Ask the model for structured data, retrying only on 429"""
         agent = self._build_agent()
-        # I fence the receipt so the model can see where untrusted text starts
-        # and ends; the schema is what actually contains the blast radius
+        # Fence receipt text so the model sees where untrusted content starts
         prompt = (
             f"Receipt file: {filename}\n"
             "<<<RECEIPT_TEXT_BEGIN>>>\n"
@@ -114,7 +100,7 @@ class GroqReceiptExtractor:
         try:
             async for attempt in AsyncRetrying(
                 retry=retry_if_exception(_is_rate_limited),
-                # Free tiers throttle hard, so I back off generously
+                # Free tiers throttle hard — back off generously
                 wait=wait_exponential(multiplier=2, min=2, max=30),
                 stop=stop_after_attempt(self._max_attempts),
                 reraise=True,
@@ -135,7 +121,7 @@ class GroqReceiptExtractor:
 
 
 def build_groq_extractor() -> GroqReceiptExtractor:
-    """I build the Groq extractor from settings"""
+    """Build Groq extractor from application settings"""
     settings = get_settings()
     return GroqReceiptExtractor(
         api_key=settings.groq_api_key, model=settings.groq_model

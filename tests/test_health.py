@@ -1,8 +1,4 @@
-"""I smoke-test the Phase 0 health endpoint
-
-I use FastAPI's TestClient so I can call the API in-process
-without starting a real HTTP server
-"""
+"""Smoke-test health and the root redirect to docs"""
 
 from fastapi.testclient import TestClient
 
@@ -26,3 +22,10 @@ def test_versioned_health_returns_ok() -> None:
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+def test_root_redirects_to_docs() -> None:
+    client = TestClient(create_app())
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/docs"

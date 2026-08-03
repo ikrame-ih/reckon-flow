@@ -21,9 +21,13 @@ htmlcov/
 # IDE / OS
 .idea/
 .vscode/
+.cursor/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Docs build
+site/
 
 # Uploads and local data
 uploads/

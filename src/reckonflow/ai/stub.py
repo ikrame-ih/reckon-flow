@@ -1,8 +1,7 @@
-"""I extract receipt fields with plain rules, no model and no network
+"""Regex-based receipt extraction — no model, no network
 
-I exist for three reasons: CI must pass without an API key, the demo must work
-offline, and the eval suite needs a baseline to beat. If the LLM cannot score
-better than these regexes on the fixtures, it is not earning its latency
+For CI without an API key, offline demos, and eval baselines. If the LLM cannot
+beat these regexes on fixtures, it is not earning its latency.
 """
 
 from __future__ import annotations
@@ -23,8 +22,7 @@ _DATE_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\b(\d{2}\.\d{2}\.\d{4})\b", "%d.%m.%Y"),
 )
 
-# I match the last money-looking token on a line, which is where receipts
-# always put the amount
+# Last money-looking token on a line — where receipts put the amount
 _AMOUNT_RE = re.compile(
     r"(-?\d{1,3}(?:[ .,]\d{3})*(?:[.,]\d{1,2})?|-?\d+(?:[.,]\d{1,2})?)"
 )
@@ -49,7 +47,7 @@ _NOISE_WORDS = (
 
 
 def _normalize_amount(token: str) -> str:
-    """I turn 1.234,56 / 1,234.56 / 1 234.56 into a plain decimal string"""
+    """Normalize 1.234,56 / 1,234.56 / 1 234.56 to a plain decimal string"""
     text = token.strip().replace(" ", "").replace("\u00a0", "")
     if "," in text and "." in text:
         # Whichever separator comes last is the decimal one
@@ -66,7 +64,7 @@ def _normalize_amount(token: str) -> str:
 
 
 def _amount_on_line(line: str) -> str | None:
-    """I return the last parseable amount on a line, or None"""
+    """Last parseable amount on a line, or None"""
     for token in reversed(_AMOUNT_RE.findall(line)):
         candidate = _normalize_amount(token)
         try:
@@ -112,12 +110,12 @@ def _looks_like_line_item(line: str) -> bool:
 
 
 class StubReceiptExtractor:
-    """I read receipt text with regexes so nothing depends on a provider"""
+    """Receipt text via regexes — no provider dependency"""
 
     name = "stub"
 
     async def extract(self, *, raw_text: str, filename: str) -> ReceiptExtraction:
-        """I pull vendor, date, totals, VAT, and line items out of plain text"""
+        """Extract vendor, date, totals, VAT, and line items from plain text"""
         lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
         if not lines:
             raise ExtractionError(f"{filename} contains no readable text")
@@ -129,9 +127,8 @@ class StubReceiptExtractor:
         vat_rate = self._find_vat_rate(lines)
 
         if total is None:
-            # Without a total I cannot reconcile anything, so I refuse rather
-            # than return a plausible-looking but useless record
-            raise ExtractionError(f"I found no total on {filename}")
+            # No total → nothing to reconcile; refuse rather than return junk
+            raise ExtractionError(f"No total found on {filename}")
 
         return ReceiptExtraction(
             vendor=vendor,
@@ -152,7 +149,7 @@ class StubReceiptExtractor:
                 "supplier",
             }:
                 return line.split(":", 1)[1].strip()[:160]
-        # Receipts print the merchant name first; I fall back to that
+        # Merchant name is usually the first non-amount line
         for line in lines:
             if not _AMOUNT_RE.fullmatch(line.strip()):
                 return line.strip(" *#-")[:160]
@@ -165,7 +162,7 @@ class StubReceiptExtractor:
         *,
         exclude: tuple[str, ...] = (),
     ) -> str | None:
-        """I scan from the bottom because summary lines sit at the end"""
+        """Scan from the bottom — summary lines sit at the end"""
         for line in reversed(lines):
             lowered = line.lower()
             if any(bad in lowered for bad in exclude):

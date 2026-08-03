@@ -1,7 +1,7 @@
-"""I own travel requests, the approval state machine, and expenses
+"""Travel requests, approval state machine, and expenses
 
-The state machine lives here rather than in the router because more than one
-caller reaches it: the API, the demo seed script, and (later) a reminder job
+The state machine lives here rather than in the router because multiple
+callers reach it: the API, the demo seed script, and (later) a reminder job.
 """
 
 from __future__ import annotations
@@ -17,8 +17,7 @@ from reckonflow.core.exceptions import InvalidStateTransitionError, NotFoundErro
 from reckonflow.models import Approval, Expense, TravelRequest
 from reckonflow.models.travel import ApprovalStatus
 
-# I encode the legal moves as data so the rule is readable at a glance and
-# adding a state never means editing branching logic in three places
+# Legal moves as data — adding a state should not mean editing branching logic
 ALLOWED_TRANSITIONS: dict[ApprovalStatus, frozenset[ApprovalStatus]] = {
     ApprovalStatus.PENDING: frozenset(
         {ApprovalStatus.APPROVED, ApprovalStatus.REJECTED}
@@ -32,7 +31,7 @@ ALLOWED_TRANSITIONS: dict[ApprovalStatus, frozenset[ApprovalStatus]] = {
 
 
 class TravelService:
-    """I keep travel and approval rules out of the HTTP layer"""
+    """Travel and approval rules — kept out of the HTTP layer"""
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -48,10 +47,9 @@ class TravelService:
         estimated_amount: Decimal,
         currency: str = "EUR",
     ) -> TravelRequest:
-        """I create the request and its pending approval in one unit of work
+        """Create request and pending approval in one unit of work
 
-        A request without an approval row would be invisible to the reviewer
-        queue, so I never let those two exist apart
+        A request without an approval row is invisible to the reviewer queue.
         """
         request = TravelRequest(
             employee_name=employee_name,
@@ -105,7 +103,7 @@ class TravelService:
     async def list_approvals(
         self, *, status: ApprovalStatus | None = None, limit: int = 100
     ) -> list[Approval]:
-        """I list approvals, optionally filtered to one queue such as pending"""
+        """List approvals, optionally filtered to one queue such as pending"""
         stmt = select(Approval).order_by(Approval.id.desc()).limit(limit)
         if status is not None:
             stmt = stmt.where(Approval.status == status.value)
@@ -120,11 +118,10 @@ class TravelService:
         reviewer: str | None = None,
         notes: str | None = None,
     ) -> Approval:
-        """I move an approval to a new status only along a legal edge
+        """Move approval to a new status only along a legal edge
 
-        I read the row with a row lock where the database supports it, so two
-        reviewers clicking approve and reject at the same moment cannot both
-        succeed against the same starting state
+        Row lock where supported so two reviewers clicking approve and reject
+        at once cannot both succeed from the same starting state.
         """
         approval = await self._session.get(Approval, approval_id, with_for_update=False)
         if approval is None:
@@ -156,7 +153,7 @@ class TravelService:
         currency: str = "EUR",
         travel_request_id: int | None = None,
     ) -> Expense:
-        """I record a spend, checking the travel request exists when given"""
+        """Record a spend, verifying the travel request exists when linked"""
         if travel_request_id is not None:
             await self.get_travel_request(travel_request_id)
 

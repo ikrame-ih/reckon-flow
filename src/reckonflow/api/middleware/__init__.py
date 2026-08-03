@@ -1,1 +1,1 @@
-"""I group ASGI middleware that wraps every request"""
+"""ASGI middleware wrapping every request."""

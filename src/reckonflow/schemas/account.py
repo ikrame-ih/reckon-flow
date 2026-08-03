@@ -1,7 +1,7 @@
-"""I define the account request/response shapes
+"""Account request/response shapes
 
-Accounts are the buckets ledger entries debit and credit, so I keep them
-deliberately boring: a stable code, a human name, and a currency
+Accounts are the buckets ledger entries debit and credit — stable code, human
+name, currency.
 """
 
 from __future__ import annotations
@@ -14,13 +14,13 @@ from reckonflow.schemas.common import CurrencyCode, MoneyStr
 
 
 class AccountCreate(BaseModel):
-    """I validate the payload that opens a new ledger account"""
+    """Payload for opening a new ledger account"""
 
     code: str = Field(
         ...,
         min_length=1,
         max_length=32,
-        description="Stable short code I use in imports and demos",
+        description="Stable short code used in imports and demos",
         examples=["6400"],
     )
     name: str = Field(..., min_length=1, max_length=120, examples=["Travel expenses"])
@@ -28,7 +28,7 @@ class AccountCreate(BaseModel):
 
 
 class AccountRead(BaseModel):
-    """I describe an account as the API returns it"""
+    """Account as returned by the API"""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,7 +40,7 @@ class AccountRead(BaseModel):
 
 
 class AccountBalanceRead(BaseModel):
-    """I report a balance computed by aggregation, never from a stored column"""
+    """Balance from aggregation — never a stored column"""
 
     account_id: int = Field(..., examples=[1])
     code: str = Field(..., examples=["6400"])

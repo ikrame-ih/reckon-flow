@@ -1,10 +1,7 @@
-"""I define the shared SQLAlchemy declarative base
-
-Every mapped table inherits from Base so Alembic and metadata stay in sync
-"""
+"""Shared SQLAlchemy declarative base for Alembic and metadata sync"""
 
 from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    """I am the parent class for all ReckonFlow ORM models"""
+    """Parent class for all ReckonFlow ORM models"""

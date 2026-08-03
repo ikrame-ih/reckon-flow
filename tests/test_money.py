@@ -1,8 +1,4 @@
-"""I test the money helpers, the smallest and most load-bearing rule I have
-
-If a float ever reaches a ledger amount, every balance downstream is quietly
-wrong, and nothing in the API would surface it. So I test the refusal itself
-"""
+"""Money helpers — refuse floats before they poison ledger math"""
 
 from __future__ import annotations
 

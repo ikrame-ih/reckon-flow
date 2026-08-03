@@ -1,7 +1,6 @@
-"""I own the async SQLAlchemy engine and session factory
+"""Async SQLAlchemy engine and session factory
 
-I expose get_db() as a FastAPI dependency so each request gets one session
-and commits or rolls back cleanly
+get_db() is a FastAPI dependency — one session per request with clean commit/rollback.
 """
 
 from collections.abc import AsyncGenerator
@@ -32,7 +31,7 @@ SessionLocal = async_sessionmaker(
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """I yield a request-scoped session and roll back on unhandled errors"""
+    """Request-scoped session; rolls back on unhandled errors"""
     async with SessionLocal() as session:
         try:
             yield session
