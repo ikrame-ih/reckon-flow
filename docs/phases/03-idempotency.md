@@ -1,22 +1,37 @@
 # Phase 3 — Idempotency
 
-## What was built
+## Goal
 
-- Middleware that reads `Idempotency-Key` on mutating methods
-- Redis `SET key NX EX 86400` to claim the key for 24 hours
-- Cached status + body replay on duplicates (`Idempotency-Replayed: true`)
-- Key prefix (`reckonflow:`) so one Upstash free database can be shared
-- Fail-open behaviour if Redis is unreachable
+A timed-out POST that the client retries must not double-post money.
 
-## Why
+## Worked example
 
-Clients retry when the network drops after the server already committed. Without
-idempotency, a second `POST` can double-create expenses or ledger rows.
+```http
+POST /api/v1/expenses
+Idempotency-Key: 9f3c-ada-hotel
+{"vendor":"Hotel Mitte","description":"...","amount":"120.00",...}
 
-## How it works
+# Client times out, retries the exact same body + key:
+POST /api/v1/expenses
+Idempotency-Key: 9f3c-ada-hotel
+...
+→ same JSON body, header Idempotency-Replayed: true, handler ran once
+```
 
-See the glossary entry for **SET NX EX 86400**. The middleware hashes the body
-so the same key cannot be reused for a different payload silently. ADR:
-[003](../adr/003-redis-idempotency.md).
+Redis claim: `SET key NX EX 86400` — write only if the key does not exist,
+expire after 24h. See the [glossary](../glossary.md#set-nx-ex-86400).
 
-**Key paths:** `api/middleware/idempotency.py`, `core/redis.py`
+## Failure case
+
+While the first request is still running, a retry gets **409**
+`IdempotencyConflict`. If Redis is down, the middleware **fails open**
+(request proceeds, retry protection is lost) — documented in
+[ADR 003](../adr/003-redis-idempotency.md).
+
+## What went wrong once
+
+Rebuilding the cached response dropped FastAPI `BackgroundTasks`, so receipt
+extraction never ran when a key was sent. The rebuild now copies `background`
+across.
+
+**Key paths:** `api/middleware/idempotency.py`, ADR 003

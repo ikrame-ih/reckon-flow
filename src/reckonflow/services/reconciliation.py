@@ -178,6 +178,7 @@ class ReconciliationService:
             .where(
                 BankTransaction.matched_expense_id.is_(None),
                 BankTransaction.match_status.in_(_OPEN_STATUSES),
+                BankTransaction.currency == expense.currency,
                 BankTransaction.booking_date.between(
                     expense.expense_date - timedelta(days=window),
                     expense.expense_date + timedelta(days=window),

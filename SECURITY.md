@@ -8,9 +8,8 @@ Do not file a public issue with exploit details.
 
 ## Scope
 
-This project is a portfolio / demo financial API. Production hardening notes and
-the audit checklist live in the documentation site: **Security** page under
-`docs/security.md` (published on GitHub Pages when enabled).
+This project is a demo financial API. Hardening notes and the audit checklist
+live at [docs/security.md](docs/security.md).
 
 ## Supported versions
 

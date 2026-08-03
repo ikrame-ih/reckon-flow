@@ -153,7 +153,7 @@ class BankTransaction(Base):
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     description: Mapped[str] = mapped_column(Text)
     external_id: Mapped[str | None] = mapped_column(
-        String(64), nullable=True, index=True
+        String(64), nullable=True, unique=True, index=True
     )
     match_status: Mapped[str] = mapped_column(String(32), default=MatchStatus.UNMATCHED)
     matched_expense_id: Mapped[int | None] = mapped_column(

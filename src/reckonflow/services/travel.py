@@ -13,9 +13,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from reckonflow.core.exceptions import InvalidStateTransitionError, NotFoundError
-from reckonflow.models import Approval, Expense, TravelRequest
+from reckonflow.core.embeddings import text_embedding
+from reckonflow.core.exceptions import (
+    InvalidStateTransitionError,
+    NotFoundError,
+    ReckonFlowError,
+)
+from reckonflow.models import Account, Approval, Expense, TravelRequest
 from reckonflow.models.travel import ApprovalStatus
+from reckonflow.services.ledger import LedgerService
 
 # Legal moves as data — adding a state should not mean editing branching logic
 ALLOWED_TRANSITIONS: dict[ApprovalStatus, frozenset[ApprovalStatus]] = {
@@ -28,6 +34,11 @@ ALLOWED_TRANSITIONS: dict[ApprovalStatus, frozenset[ApprovalStatus]] = {
     ApprovalStatus.REJECTED: frozenset(),
     ApprovalStatus.PAID: frozenset(),
 }
+
+# Chart codes used when mark_paid posts the reimbursement
+_CASH_CODE = "CASH"
+_TRAVEL_CODE = "TRAVEL"
+_SPENDABLE = frozenset({ApprovalStatus.APPROVED, ApprovalStatus.PAID})
 
 
 class TravelService:
@@ -120,10 +131,17 @@ class TravelService:
     ) -> Approval:
         """Move approval to a new status only along a legal edge
 
-        Row lock where supported so two reviewers clicking approve and reject
-        at once cannot both succeed from the same starting state.
+        Uses FOR UPDATE where the dialect supports it so two reviewers
+        cannot both succeed from the same starting state. Marking paid also
+        posts a balanced ledger transaction (TRAVEL debit / CASH credit).
         """
-        approval = await self._session.get(Approval, approval_id, with_for_update=False)
+        if self._supports_for_update():
+            stmt = select(Approval).where(Approval.id == approval_id).with_for_update()
+            result = await self._session.execute(stmt)
+            approval = result.scalar_one_or_none()
+        else:
+            approval = await self._session.get(Approval, approval_id)
+
         if approval is None:
             raise NotFoundError(f"Approval {approval_id} not found")
 
@@ -131,9 +149,12 @@ class TravelService:
         if target not in ALLOWED_TRANSITIONS[current]:
             allowed = ", ".join(sorted(ALLOWED_TRANSITIONS[current])) or "nothing"
             raise InvalidStateTransitionError(
-                f"I cannot move approval {approval_id} from {current} to {target};"
+                f"Cannot move approval {approval_id} from {current} to {target};"
                 f" allowed next: {allowed}"
             )
+
+        if target == ApprovalStatus.PAID:
+            await self._post_payment_ledger(approval)
 
         approval.status = target
         if reviewer is not None:
@@ -141,7 +162,56 @@ class TravelService:
         if notes is not None:
             approval.notes = notes
         await self._session.flush()
+        await self._session.refresh(approval)
         return approval
+
+    async def _post_payment_ledger(self, approval: Approval) -> None:
+        """Record the reimbursement in the double-entry ledger"""
+        trip = await self.get_travel_request(approval.travel_request_id)
+        cash = await self._account_by_code(_CASH_CODE)
+        travel_acct = await self._account_by_code(_TRAVEL_CODE)
+        amount = str(trip.estimated_amount)
+        ledger = LedgerService(self._session)
+        await ledger.create_balanced_transaction(
+            reference=f"PAY-{approval.id}",
+            description=(f"Travel payment: {trip.employee_name} → {trip.destination}"),
+            lines=[
+                {
+                    "account_id": travel_acct.id,
+                    "debit": amount,
+                    "credit": "0",
+                    "currency": trip.currency,
+                },
+                {
+                    "account_id": cash.id,
+                    "debit": "0",
+                    "credit": amount,
+                    "currency": trip.currency,
+                },
+            ],
+        )
+
+    async def _account_by_code(self, code: str) -> Account:
+        result = await self._session.execute(
+            select(Account).where(Account.code == code)
+        )
+        account = result.scalar_one_or_none()
+        if account is None:
+            raise ReckonFlowError(
+                f"Account {code!r} is required before marking a trip paid; "
+                "run the seed script or create CASH and TRAVEL accounts"
+            )
+        return account
+
+    def _supports_for_update(self) -> bool:
+        try:
+            return self._session.get_bind().dialect.name in {
+                "postgresql",
+                "mysql",
+                "oracle",
+            }
+        except Exception:
+            return False
 
     async def create_expense(
         self,
@@ -153,10 +223,21 @@ class TravelService:
         currency: str = "EUR",
         travel_request_id: int | None = None,
     ) -> Expense:
-        """Record a spend, verifying the travel request exists when linked"""
+        """Record a spend; linked trips must already be approved or paid"""
         if travel_request_id is not None:
-            await self.get_travel_request(travel_request_id)
+            trip = await self.get_travel_request(travel_request_id)
+            if trip.approval is None:
+                raise InvalidStateTransitionError(
+                    f"Travel request {travel_request_id} has no approval row"
+                )
+            status = ApprovalStatus(trip.approval.status)
+            if status not in _SPENDABLE:
+                raise InvalidStateTransitionError(
+                    f"Cannot attach expense to travel request {travel_request_id} "
+                    f"while approval is {status.value}; approve the trip first"
+                )
 
+        text = f"{vendor} {description}".strip()
         expense = Expense(
             travel_request_id=travel_request_id,
             vendor=vendor,
@@ -164,6 +245,7 @@ class TravelService:
             amount=amount,
             currency=currency.upper(),
             expense_date=expense_date,
+            embedding=text_embedding(text),
         )
         self._session.add(expense)
         await self._session.flush()

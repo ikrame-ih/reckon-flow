@@ -65,7 +65,8 @@ async def evaluate() -> int:
 
     accuracy = (hits / total) if total else 0.0
     print(f"Overall field accuracy: {hits}/{total} = {accuracy:.1%}")
-    return 0 if accuracy >= 0.5 else 1
+    # Stub baseline on the fixture set should stay clearly above coin-flip
+    return 0 if accuracy >= 0.7 else 1
 
 
 if __name__ == "__main__":

@@ -1,28 +1,44 @@
-# Phase 1 — Double-entry ledger
+# Phase 1 — Ledger
 
-## What was built
+## Goal
 
-- `Account`, `LedgerTransaction`, `LedgerEntry` models
-- Amounts as `NUMERIC(15, 4)` plus ISO `currency`
-- `parse_money` / `MoneyStr` — no floats on the wire
-- Service that rejects unbalanced writes
-- Alembic migration with one-sided entry checks and a deferred balance trigger on Postgres
-- REST endpoints for accounts and transactions
+Money that cannot lie: Decimal everywhere, balanced double-entry, append-only
+history.
 
-## Why
+## Worked example
 
-A single mutable `balance` column loses history and races under concurrency.
-Double-entry treats money as events: every transaction has debits and credits
-that cancel out. Append-only rows keep an audit trail.
+```http
+POST /api/v1/accounts
+{"code":"CASH","name":"Cash","currency":"EUR"}
 
-## How it works
+POST /api/v1/ledger/transactions
+{
+  "reference": "TX-1",
+  "description": "Hotel from cash",
+  "lines": [
+    {"account_id": 2, "debit": "120.00", "credit": "0", "currency": "EUR"},
+    {"account_id": 1, "debit": "0", "credit": "120.00", "currency": "EUR"}
+  ]
+}
+```
 
-Balances are computed with `SUM(debit) - SUM(credit)`, never stored as a
-writable field. Corrections are new reversing transactions, not `UPDATE`s on
-old lines. JSON responses serialize money as strings so JavaScript clients do
-not turn amounts into IEEE floats.
+Amounts are **strings**. Sending `120.00` as a JSON number is rejected —
+floats already lost precision before they reach the ledger.
 
-**Key paths:** `models/ledger.py`, `services/ledger.py`, `schemas/ledger.py`,
-`core/money.py`, `alembic/versions/001_initial_schema.py`
+## Failure case
 
-See also ADR-style notes in the glossary under **double-entry** and **MoneyStr**.
+An unbalanced body returns **422** and leaves **zero** rows:
+
+```json
+{"error": "UnbalancedLedgerError", "detail": "Unbalanced transaction: debit=100 credit=50"}
+```
+
+Postgres also has a deferred trigger so a buggy script cannot commit an
+unbalanced set even if it bypasses the service.
+
+## What went wrong once
+
+I first returned balances as floats in JSON. Client JS rounded them. Switching
+to `MoneyStr` fixed silent drift.
+
+**Key paths:** `core/money.py`, `services/ledger.py`, `alembic/versions/001_*.py`

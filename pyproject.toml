@@ -23,6 +23,7 @@ dependencies = [
     "pydantic-ai>=0.0.50",
     "httpx>=0.28.1",
     "groq>=1.6.0",
+    "prometheus-fastapi-instrumentator>=8.1.0",
 ]
 
 [project.scripts]
@@ -42,6 +43,8 @@ dev = [
     "pre-commit>=4.0.0",
     "aiosqlite>=0.22.1",
     "mkdocs-material>=9.7.7",
+    "pip-audit>=2.10.1",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.uv]

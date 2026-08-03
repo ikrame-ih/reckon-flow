@@ -1,11 +1,15 @@
 """Smoke-test health and the root redirect to docs"""
 
+import pytest
 from fastapi.testclient import TestClient
 
+from reckonflow.core.config import get_settings
 from reckonflow.main import create_app
 
 
-def test_health_returns_ok() -> None:
+def test_health_returns_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    get_settings.cache_clear()
     client = TestClient(create_app())
     response = client.get("/health")
 
@@ -14,18 +18,28 @@ def test_health_returns_ok() -> None:
     assert payload["status"] == "ok"
     assert payload["app"] == "ReckonFlow"
     assert "version" in payload
+    assert payload["database"] is True
+    assert "X-Request-ID" in response.headers
+    get_settings.cache_clear()
 
 
-def test_versioned_health_returns_ok() -> None:
+def test_versioned_health_returns_ok(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    get_settings.cache_clear()
     client = TestClient(create_app())
     response = client.get("/api/v1/health")
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+    get_settings.cache_clear()
 
 
-def test_root_redirects_to_docs() -> None:
+def test_root_redirects_to_docs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("METRICS_ENABLED", "false")
+    get_settings.cache_clear()
     client = TestClient(create_app())
     response = client.get("/", follow_redirects=False)
     assert response.status_code in (302, 307)
     assert response.headers["location"] == "/docs"
+    get_settings.cache_clear()

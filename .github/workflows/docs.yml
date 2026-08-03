@@ -3,6 +3,7 @@ name: Docs
 on:
   push:
     branches: [main, master]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -26,17 +27,19 @@ jobs:
           python-version: "3.12"
 
       - name: Sync docs dependencies
-        run: uv sync --frozen || uv sync
+        run: uv sync --frozen
 
       - name: Build MkDocs
         run: uv run mkdocs build --strict
 
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     environment:

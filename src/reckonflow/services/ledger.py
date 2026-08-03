@@ -72,7 +72,7 @@ class LedgerService:
         scripts and background jobs call this without going through HTTP.
         """
         if len(lines) < 2:
-            raise UnbalancedLedgerError("I need at least two ledger lines")
+            raise UnbalancedLedgerError("Need at least two ledger lines")
 
         parsed: list[tuple[int, Decimal, Decimal, str, str | None]] = []
         total_debit = Decimal("0")

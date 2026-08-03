@@ -1,9 +1,10 @@
 """Groq-hosted receipt extraction via PydanticAI
 
-Groq free tier keeps the portfolio runnable without paid API keys; the stub
-works with no key. PydanticAI output_type=ReceiptExtraction with extra=forbid
-means invalid output is failure, not partial prose to parse. Real defence against
-prompt injection is the schema — no field can approve, pay, or delete anything.
+Without an API key the app falls back to the rule-based stub so offline
+runs and CI stay deterministic. PydanticAI output_type=ReceiptExtraction with
+extra=forbid means invalid output is failure, not partial prose to parse.
+The schema is the real defence against prompt injection — no field can approve,
+pay, or delete anything.
 """
 
 from __future__ import annotations

@@ -1,8 +1,8 @@
 """Background receipt extraction after the HTTP response is sent
 
 Opens its own DB session — the request-scoped session is closed before
-BackgroundTasks run. This is not a queue (honest for a demo); upgrade path is
-Celery or arq without changing callers.
+BackgroundTasks run. BackgroundTasks is not a durable queue: work is lost on
+process crash. Upgrade path is arq or Celery without changing callers.
 """
 
 from __future__ import annotations

@@ -9,7 +9,9 @@ ReckonFlow is a **headless** FastAPI backend for corporate travel:
 
 There is no product UI. The interactive demo is Swagger:
 
-**[Live API docs](https://reckon-flow.onrender.com/docs)**
+**[Live API docs](https://reckon-flow.onrender.com/docs)** · **[Documentation site](https://ikrame-ih.github.io/reckon-flow/)**
+
+![Reconciliation suggest in Swagger](assets/swagger-recon.png)
 
 ```mermaid
 flowchart TD
@@ -31,3 +33,4 @@ flowchart TD
 - [Build phases](phases/index.md)
 - [Glossary](glossary.md)
 - [Security notes](security.md)
+- [ADRs](adr/README.md)

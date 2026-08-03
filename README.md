@@ -4,25 +4,38 @@ Headless FastAPI backend for corporate travel approvals, an immutable
 double-entry ledger, structured receipt extraction, and hybrid bank
 reconciliation.
 
-**Live demo:** [https://reckon-flow.onrender.com/docs](https://reckon-flow.onrender.com/docs)
-
-**Docs site (GitHub Pages):** enable Pages → Source **GitHub Actions**, then
-open `https://ikrame-ih.github.io/reckon-flow/` after the Docs workflow runs.
+**Live API:** [Swagger on Render](https://reckon-flow.onrender.com/docs)  
+**Docs:** [GitHub Pages](https://ikrame-ih.github.io/reckon-flow/)
 
 > Free Render instances sleep when idle — the first request can take ~50s.
 
-## Why this project
+## Why I built this
 
-Admin teams often juggle three disconnected flows:
+I wanted a backend project that forces the hard parts of finance software —
+money precision, retries, concurrency, and untrusted LLM output — instead of
+another CRUD todo API. Corporate travel is a concrete domain where those
+failures show up as duplicate reimbursements and silent mismatches.
 
-1. Travel pre-requests waiting for approval
-2. Bookings made outside the approval system
-3. Manual reconciliation of bank CSVs against receipts
+## Lessons learned
 
-ReckonFlow unifies those flows behind an API so finance reviews exceptions
-instead of matching every line by hand.
+- Floats in JSON are a footgun; money must cross the wire as strings.
+- Idempotency is a protocol (key + body hash + cached response), not a unique
+  constraint alone.
+- RapidFuzz scores and embedding cosine are not on the same scale — RRF ranks
+  beat weighted averages.
+- Schema containment beats prompt instructions when the model sees hostile text.
 
-## Architecture
+## 30-second demo
+
+After [seed](#quick-start) (or on the live demo once seeded):
+
+1. `GET /api/v1/accounts` → `CASH`, `TRAVEL`
+2. `GET /api/v1/expenses` → note an expense `id`
+3. `POST /api/v1/reconciliation/expenses/{id}/suggest` → ranked bank candidates
+
+Mutating calls on production should send `X-API-Key` when that env var is set.
+
+![Swagger: reconciliation suggest](docs/assets/swagger-recon.png)
 
 ```mermaid
 flowchart TD
@@ -32,7 +45,7 @@ flowchart TD
   Routers --> Services[Service Layer]
   Services --> PG[(PostgreSQL)]
   Routers -->|"202 Accepted"| BG[Background Tasks]
-  BG --> LLM[Groq free tier / stub]
+  BG --> LLM[Groq / stub]
   LLM -->|Structured receipt data| Services
   Services --> Recon[SQL + RapidFuzz + RRF]
   Recon --> PG
@@ -43,13 +56,13 @@ flowchart TD
 | Layer | Choice |
 | --- | --- |
 | API | Python 3.12 + FastAPI |
-| DB | PostgreSQL (SQLite in unit tests) |
+| DB | PostgreSQL / Neon (SQLite in unit tests) |
 | Cache | Redis / Upstash (`Idempotency-Key`) |
 | ORM | SQLAlchemy 2 async + Alembic |
 | Extraction | Groq when `GROQ_API_KEY` is set; stub otherwise |
-| Matching | Date/amount prefilter + RapidFuzz + RRF (k=60) |
+| Matching | Date/amount/currency prefilter + RapidFuzz + embeddings + RRF (k=60) |
 | Docs | MkDocs Material → GitHub Pages |
-| Tooling | uv, Ruff, mypy, pytest, GitHub Actions |
+| Ops | Request IDs, `/metrics`, rate limit, API key on writes |
 
 ## Quick start
 
@@ -61,23 +74,7 @@ uv run python scripts/seed_demo.py
 uv run uvicorn reckonflow.main:app --reload --port 8000
 ```
 
-Local docs: http://localhost:8000/docs
-
-## Deploy
-
-| Piece | Host |
-| --- | --- |
-| API | [Render](https://reckon-flow.onrender.com/docs) |
-| Database | Neon |
-| Idempotency | Upstash Redis (shared DB OK with `REDIS_KEY_PREFIX=reckonflow:`) |
-
-Migrations run on boot via `scripts/render_start.sh`. Seed Neon from your
-laptop when the free Render plan has no shell:
-
-```bash
-$env:DATABASE_URL = "<Neon URI>"
-uv run python scripts/seed_demo.py
-```
+Local docs: http://localhost:8000/docs · Metrics: http://localhost:8000/metrics
 
 ## Quality checks
 
@@ -85,7 +82,8 @@ uv run python scripts/seed_demo.py
 uv run ruff check src tests
 uv run ruff format --check src tests
 uv run mypy src
-uv run pytest
+uv run pytest --cov=reckonflow
+uv run pip-audit
 uv run python scripts/run_evals.py
 ```
 
@@ -93,22 +91,17 @@ uv run python scripts/run_evals.py
 
 | Phase | Focus | Status |
 | --- | --- | --- |
-| 0 | Skeleton, `/health`, tooling, CI | Done |
-| 1 | Double-entry ledger | Done |
-| 2 | Travel + approvals + bank CSV | Done |
-| 3 | Redis idempotency | Done |
-| 4 | Receipt extraction + evals | Done |
-| 5 | Hybrid reconciliation + `FOR UPDATE` | Done |
-| 6 | OpenAPI, seed, deploy, docs site | Done |
+| 0–6 | Skeleton → ledger → travel → idempotency → receipts → recon → deploy | Done |
 
-Walkthrough: see the MkDocs **Build phases** section once Pages is live, or
-browse `docs/phases/` in this repo.
+Walkthrough: [Build phases](https://ikrame-ih.github.io/reckon-flow/phases/) or `docs/phases/`.
 
 ## Decisions
 
 - [001 Why not dbt](docs/adr/001-why-not-dbt.md)
 - [002 Receipt content is untrusted](docs/adr/002-receipt-untrusted-input.md)
 - [003 Redis idempotency](docs/adr/003-redis-idempotency.md)
+- [004 API-key auth](docs/adr/004-api-key-auth.md)
+- [005 Background tasks vs queue](docs/adr/005-background-tasks.md)
 
 ## Contributing
 

@@ -38,7 +38,7 @@ async def _bank_row(session: AsyncSession, **overrides: Any) -> BankTransaction:
     row = BankTransaction(
         booking_date=overrides.pop("booking_date", date(2026, 9, 18)),
         amount=overrides.pop("amount", Decimal("612.40")),
-        currency="EUR",
+        currency=overrides.pop("currency", "EUR"),
         description=overrides.pop("description", "HOTEL ADLON BERLIN CARD 4421"),
         match_status=overrides.pop("match_status", MatchStatus.UNMATCHED.value),
         **overrides,
@@ -70,10 +70,21 @@ async def test_obvious_match_is_suggested_first(session: AsyncSession) -> None:
 async def test_prefilter_drops_rows_outside_the_window(
     session: AsyncSession,
 ) -> None:
-    """The prefilter is what keeps this affordable on a real statement"""
+    """Date and amount windows shrink the candidate set before fuzzy matching"""
     expense = await _expense(session)
     await _bank_row(session, booking_date=date(2026, 12, 1))  # far outside the window
     await _bank_row(session, amount=Decimal("2500.00"))  # far outside the tolerance
+
+    service = ReconciliationService(session)
+    _, ranked, considered = await service.suggest_matches(expense.id)
+
+    assert considered == 0
+    assert ranked == []
+
+
+async def test_prefilter_drops_currency_mismatches(session: AsyncSession) -> None:
+    expense = await _expense(session)
+    await _bank_row(session, currency="USD")
 
     service = ReconciliationService(session)
     _, ranked, considered = await service.suggest_matches(expense.id)

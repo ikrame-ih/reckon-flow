@@ -1,8 +1,8 @@
 """Column types that adapt to the database behind them
 
-Embeddings default to JSON so native Windows PostgreSQL works without pgvector.
-On pgvector/pgvector Docker the dialect branch can switch to Vector without
-changing the Python value type (list[float]).
+Embeddings default to JSON so stock PostgreSQL works without the pgvector
+extension. On pgvector/pgvector Docker the dialect branch can switch to Vector
+without changing the Python value type (list[float]).
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ DEFAULT_EMBEDDING_DIMENSIONS = 384
 
 
 class EmbeddingVector(TypeDecorator[list[float]]):
-    """Persist embeddings as JSON — demos do not require pgvector"""
+    """Persist embeddings as JSON when pgvector is unavailable"""
 
     impl = JSON
     cache_ok = True
@@ -26,7 +26,7 @@ class EmbeddingVector(TypeDecorator[list[float]]):
         super().__init__()
 
     def load_dialect_impl(self, dialect: Dialect) -> TypeEngine[Any]:
-        # JSONB on Postgres is enough for a portfolio demo without extensions
+        # JSONB on Postgres avoids requiring the pgvector extension
         if dialect.name == "postgresql":
             from sqlalchemy.dialects.postgresql import JSONB
 

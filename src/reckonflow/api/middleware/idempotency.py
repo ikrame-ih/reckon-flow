@@ -108,11 +108,46 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             replayed = await self._replay(redis, cache_key)
             if replayed is not None:
                 return replayed
+            # Claim lost (expiry) or corrupt entry — re-claim before running.
+            # Never fall through while another caller may still own the key.
+            try:
+                claimed = await redis.set(cache_key, IN_PROGRESS, nx=True, ex=self._ttl)
+            except Exception as exc:
+                logger.warning("idempotency.reclaim_failed", error=str(exc))
+                return JSONResponse(
+                    status_code=409,
+                    content={
+                        "error": "IdempotencyConflict",
+                        "detail": (
+                            "Could not claim this Idempotency-Key after a failed "
+                            "replay; retry shortly"
+                        ),
+                    },
+                )
+            if not claimed:
+                replayed = await self._replay(redis, cache_key)
+                if replayed is not None:
+                    return replayed
+                return JSONResponse(
+                    status_code=409,
+                    content={
+                        "error": "IdempotencyConflict",
+                        "detail": (
+                            "Could not claim or replay this Idempotency-Key; "
+                            "retry shortly"
+                        ),
+                    },
+                )
 
         response = await call_next(request)
+        background = getattr(response, "background", None)
         captured = await _capture(response)
         await self._store(redis, cache_key, captured)
-        return _rebuild(captured)
+        rebuilt = _rebuild(captured)
+        # Preserve BackgroundTasks (e.g. receipt extraction) across the rebuild
+        if background is not None:
+            rebuilt.background = background
+        return rebuilt
 
     async def _replay(self, redis: Redis, cache_key: str) -> Response | None:
         """Stored response, or 409 while the first call is still running"""
@@ -123,7 +158,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             return None
 
         if stored is None:
-            # Key expired between SET NX and GET — let the request proceed
+            # Key expired between SET NX and GET — let the caller re-claim
             return None
         if stored == IN_PROGRESS:
             return JSONResponse(
@@ -140,6 +175,10 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             captured: CapturedResponse = json.loads(stored)
         except json.JSONDecodeError:
             logger.warning("idempotency.corrupt_entry", key=cache_key)
+            try:
+                await redis.delete(cache_key)
+            except Exception as exc:
+                logger.warning("idempotency.corrupt_delete_failed", error=str(exc))
             return None
 
         response = _rebuild(captured)

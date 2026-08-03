@@ -1,11 +1,15 @@
-"""Health check response schema"""
+"""Health probe response"""
 
 from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
-    """Shape of the /health JSON body"""
-
-    status: str = Field(..., examples=["ok"])
-    app: str = Field(..., examples=["ReckonFlow"])
-    version: str = Field(..., examples=["0.1.0"])
+    status: str = Field(examples=["ok", "degraded"])
+    app: str
+    version: str
+    database: bool | None = Field(
+        default=None, description="True when SELECT 1 against the DB succeeds"
+    )
+    redis: bool | None = Field(
+        default=None, description="True when Redis PING succeeds"
+    )

@@ -1,7 +1,7 @@
 # Build phases
 
-ReckonFlow was built in six phases. Each page explains **what** landed,
-**why**, and **how** it works in the code.
+ReckonFlow was built in six phases. Each page has a worked example, a failure
+case, and a short note on what broke during development.
 
 | Phase | Focus |
 | --- | --- |
@@ -11,6 +11,6 @@ ReckonFlow was built in six phases. Each page explains **what** landed,
 | [3](03-idempotency.md) | Redis `Idempotency-Key` + cached responses |
 | [4](04-receipts.md) | 202 upload, Groq/stub extraction, evals |
 | [5](05-reconciliation.md) | Prefilter, RapidFuzz, RRF, `FOR UPDATE` |
-| [6](06-polish.md) | OpenAPI, seed, Neon/Render/Upstash deploy |
+| [6](06-polish.md) | OpenAPI, seed, Neon/Render/Upstash, auth |
 
 Keep the [glossary](../glossary.md) open while you read.

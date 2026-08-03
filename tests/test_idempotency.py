@@ -44,6 +44,9 @@ class FakeRedis:
     async def get(self, key: str) -> str | None:
         return self.store.get(key)
 
+    async def delete(self, key: str) -> int:
+        return 1 if self.store.pop(key, None) is not None else 0
+
 
 class BrokenRedis(FakeRedis):
     """Simulates unreachable Redis"""
@@ -197,3 +200,43 @@ def test_disabled_middleware_is_a_passthrough() -> None:
 
     assert len(calls) == 2
     assert redis.set_calls == []
+
+
+def test_corrupt_cache_is_deleted_and_reclaimed() -> None:
+    """Corrupt Redis values must not fall through without reclaiming"""
+    redis = FakeRedis()
+    client, calls = build_client(redis)
+    headers = {IDEMPOTENCY_HEADER: "key-corrupt"}
+
+    # First plant a corrupt value under the key the next request will use
+    primed = client.build_request("POST", "/things", json={"name": "hotel"})
+    body = primed.content
+    cache_key = build_cache_key(primed, "key-corrupt", body)  # type: ignore[arg-type]
+    redis.store[cache_key] = "{not-json"
+
+    response = client.post("/things", json={"name": "hotel"}, headers=headers)
+
+    assert response.status_code == 200
+    assert len(calls) == 1
+    assert redis.store.get(cache_key) != "{not-json"
+
+
+def test_background_tasks_survive_idempotency_rebuild() -> None:
+    """Rebuilt responses must keep Starlette background work attached"""
+    from starlette.background import BackgroundTasks
+
+    from reckonflow.api.middleware.idempotency import CapturedResponse, _rebuild
+
+    ran: list[int] = []
+    tasks = BackgroundTasks()
+    tasks.add_task(lambda: ran.append(1))
+
+    rebuilt = _rebuild(
+        CapturedResponse(
+            status_code=200,
+            headers={"content-type": "application/json"},
+            body="{}",
+        )
+    )
+    rebuilt.background = tasks
+    assert rebuilt.background is tasks

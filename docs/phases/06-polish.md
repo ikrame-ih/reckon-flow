@@ -1,24 +1,33 @@
 # Phase 6 — Polish and deploy
 
-## What was built
+## Goal
 
-- Richer OpenAPI descriptions and examples (Swagger as the demo UI)
-- Idempotent `scripts/seed_demo.py`
-- `scripts/render_start.sh` — migrations on boot
-- Neon (Postgres) + Render (API) + Upstash (Redis)
-- URL rewriting so Neon’s `channel_binding` query param does not break asyncpg
-- This documentation site (MkDocs Material → GitHub Pages)
+Runnable demo: seed data, OpenAPI, Render + Neon + Upstash, docs site, auth
+story.
 
-## Why
+## Deploy shape
 
-A headless API needs a public `/docs` link more than a custom frontend. Seed
-data lets a visitor see real accounts without crafting JSON from scratch.
+| Piece | Host |
+| --- | --- |
+| API | Render (`scripts/render_start.sh` runs migrations then uvicorn) |
+| Database | Neon Postgres |
+| Idempotency | Upstash Redis (`REDIS_KEY_PREFIX=reckonflow:`) |
+| Docs | MkDocs → GitHub Pages |
 
-## How to demo
+Set `API_KEY` on Render so mutating routes require `X-API-Key`. Leave it empty
+only for local exploration.
 
-1. Open the [live docs](https://reckon-flow.onrender.com/docs)
-2. Hit `/health`, then `/api/v1/accounts`
-3. Post a balanced ledger transaction (amounts as strings)
-4. With `GROQ_API_KEY` set, upload a receipt and poll until `extracted`
+## Demo path (after seed)
 
-Cold starts on free Render can take ~50 seconds — that is expected.
+1. Open [Swagger](https://reckon-flow.onrender.com/docs)
+2. `GET /api/v1/accounts` — CASH and TRAVEL
+3. `GET /api/v1/expenses` then `POST /api/v1/reconciliation/expenses/{id}/suggest`
+
+Free Render sleeps when idle — first request can take ~50s.
+
+## What went wrong once
+
+Neon URLs include `channel_binding=require`, which asyncpg rejects. The URL
+rewriter in `core/config.py` strips it and maps `sslmode` → `ssl=require`.
+
+**Key paths:** `scripts/seed_demo.py`, `scripts/render_start.sh`, ADR 004

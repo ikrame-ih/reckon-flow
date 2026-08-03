@@ -6,10 +6,8 @@ Thanks for reading the code. A few conventions keep the project readable.
 
 - Prefer short comments that explain **why** (a constraint, a risk, or a
   design choice), not a restatement of the next line.
-- Write in plain English. First person ("I reject float money…") is fine when
-  it sounds natural; otherwise use a clear third-person note.
-- Do not leave machine-local paths, personal notes, or tooling chatter in
-  source or docs.
+- Write in plain English. First person is fine when it sounds natural;
+  otherwise use a clear third-person note.
 
 ## Code layout
 
@@ -32,11 +30,11 @@ uv run ruff check src tests
 uv run ruff format --check src tests
 uv run mypy src
 uv run pytest
+uv run pip-audit
 uv run python scripts/run_evals.py
 ```
 
 ## Docs site
 
 Project documentation (phases, glossary, ADRs) lives under `docs/` and is
-built with MkDocs Material. See the README for the GitHub Pages URL once
-Pages is enabled on the repository.
+built with MkDocs Material → [GitHub Pages](https://ikrame-ih.github.io/reckon-flow/).

@@ -1,4 +1,8 @@
-"""Structured logging via structlog — field-rich logs for search by request id"""
+"""Structured logging via structlog (JSON in production, console in debug)
+
+RequestIdMiddleware binds `request_id` into contextvars so every log line
+from a request can be correlated.
+"""
 
 import logging
 import sys

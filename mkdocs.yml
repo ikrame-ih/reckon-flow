@@ -44,6 +44,8 @@ nav:
       - "001 Why not dbt": adr/001-why-not-dbt.md
       - "002 Untrusted receipts": adr/002-receipt-untrusted-input.md
       - "003 Redis idempotency": adr/003-redis-idempotency.md
+      - "004 API-key auth": adr/004-api-key-auth.md
+      - "005 Background tasks": adr/005-background-tasks.md
 
 markdown_extensions:
   - admonition

@@ -16,8 +16,14 @@ class Settings(BaseSettings):
 
     app_name: str = "ReckonFlow"
     app_env: str = "development"
-    debug: bool = True
+    debug: bool = False
     api_v1_prefix: str = "/api/v1"
+    # When set, mutating requests must send matching X-API-Key. Empty = disabled.
+    api_key: str = ""
+
+    rate_limit_enabled: bool = True
+    rate_limit_per_minute: int = 120
+    metrics_enabled: bool = True
 
     database_url: str = (
         "postgresql+asyncpg://reckonflow:reckonflow@localhost:5432/reckonflow"

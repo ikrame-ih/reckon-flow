@@ -1,0 +1,10 @@
+{
+  "id": "multilingual_fr",
+  "raw_text": "Taxi Parisien SARL\nDate: 21/07/2026\nCourse aeroport\nMontant 38,20 EUR\nMerci",
+  "expected": {
+    "vendor": "Taxi Parisien SARL",
+    "receipt_date": "2026-07-21",
+    "currency": "EUR",
+    "total": "38.20"
+  }
+}

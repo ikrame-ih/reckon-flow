@@ -14,6 +14,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from reckonflow.core.embeddings import text_embedding
 from reckonflow.models import BankTransaction
 from reckonflow.schemas.bank import BankCsvRow, BankImportError, BankImportResult
 
@@ -101,6 +102,7 @@ class BankService:
                     currency=row.currency,
                     description=row.description,
                     external_id=row.external_id,
+                    embedding=text_embedding(row.description),
                 )
             )
             inserted += 1

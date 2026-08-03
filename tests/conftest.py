@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from reckonflow.core.config import get_settings
 from reckonflow.core.db import get_db
 from reckonflow.main import create_app
 from reckonflow.models import Base
@@ -43,11 +44,17 @@ async def session() -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-def client(session: AsyncSession) -> Iterator[TestClient]:
+def client(
+    session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[TestClient]:
     """TestClient sharing the test SQLite session via get_db override
 
     Override lets the test inspect rows through the same session the request wrote.
     """
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("METRICS_ENABLED", "false")
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "false")
+    get_settings.cache_clear()
 
     async def override_get_db() -> AsyncIterator[AsyncSession]:
         yield session
@@ -57,3 +64,4 @@ def client(session: AsyncSession) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+    get_settings.cache_clear()

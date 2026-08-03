@@ -8,6 +8,25 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: reckonflow
+          POSTGRES_PASSWORD: reckonflow
+          POSTGRES_DB: reckonflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reckonflow"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://reckonflow:reckonflow@localhost:5432/reckonflow
+      API_KEY: ""
+      RATE_LIMIT_ENABLED: "false"
+      METRICS_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
 
@@ -17,7 +36,7 @@ jobs:
           python-version: "3.12"
 
       - name: Sync dependencies
-        run: uv sync --frozen || uv sync
+        run: uv sync --frozen
 
       - name: Ruff check
         run: uv run ruff check src tests
@@ -28,5 +47,14 @@ jobs:
       - name: Type check
         run: uv run mypy src
 
-      - name: Tests
-        run: uv run pytest
+      - name: Tests with coverage
+        run: uv run pytest --cov=reckonflow --cov-report=term-missing
+
+      - name: Dependency audit
+        run: uv run pip-audit
+
+      - name: Receipt evals
+        run: uv run python scripts/run_evals.py
+
+      - name: Docs build
+        run: uv run mkdocs build --strict

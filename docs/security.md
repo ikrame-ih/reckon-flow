@@ -22,25 +22,22 @@ ReckonFlow is a headless financial API. Attackers might try to:
 | Prompt injection via receipts | Medium | **Mitigated** | `ReceiptExtraction` uses `extra="forbid"`; extractor cannot approve/pay/post. See [ADR 002](adr/002-receipt-untrusted-input.md). |
 | Float money | High | **OK** | `MoneyStr` + `parse_money` reject `float`. |
 | Secrets in repo | High | **OK** | `.env` gitignored; config from environment. Rotate any secret that was ever pasted into a chat or screenshot. |
+| Auth | High | **Mitigated** | Mutating routes require `X-API-Key` when `API_KEY` is set (ADR 004). Empty key disables the gate for local/CI. |
 | Duplicate POSTs | Medium | **Mitigated** | Idempotency middleware; fails open if Redis is down (availability over strictness — see ADR 003). |
 | Concurrent match writes | Medium | **Mitigated** | `FOR UPDATE` when linking expense ↔ bank row; unique constraints on match links. |
-| Dependency CVEs | Medium | **OK** | `pip-audit` reported no known vulnerabilities at last check (project package itself is local and skipped). |
-| Debug in production | Low | **OK if configured** | Set `DEBUG=false` and `APP_ENV=production` on Render. |
+| Rate limiting | Low | **Mitigated** | In-process sliding window (`RATE_LIMIT_PER_MINUTE`); Redis token bucket for multi-instance later. |
+| Dependency CVEs | Medium | **OK** | CI runs `pip-audit` on every push; local package is skipped. |
+| Debug in production | Low | **OK if configured** | Default `DEBUG=false`; set `APP_ENV=production` on Render. |
 | CORS | Low | **N/A** | No browser frontend; default FastAPI CORS is closed unless you add middleware. |
 
 ## How to reproduce the checks
 
 ```bash
-# Static quality
+# Same gates as CI
 uv run ruff check src tests
 uv run mypy src
 uv run pytest
-
-# Dependency audit
-uv pip install pip-audit
 uv run pip-audit
-
-# Receipt evals (stub without GROQ_API_KEY)
 uv run python scripts/run_evals.py
 ```
 

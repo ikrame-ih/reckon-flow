@@ -1,23 +1,34 @@
 # Phase 5 — Reconciliation
 
-## What was built
+## Goal
 
-- SQL prefilter (date window + amount tolerance)
-- RapidFuzz ranking on descriptions
-- Optional embedding ranks when vectors are present
-- Reciprocal Rank Fusion with **k = 60**
-- Auto-match above a confidence threshold; otherwise `pending_review`
-- `SELECT … FOR UPDATE` when linking expense ↔ bank row
+Suggest bank matches without scanning every statement line, and refuse to
+guess when two candidates look equal.
 
-## Why
+## Worked example (RRF arithmetic)
 
-Bank lines and expenses rarely share a primary key. Exact joins fail. Ranking
-candidates and leaving low-confidence cases for humans is the practical design.
+Expense: `Hotel Adlon / 612.40 EUR / 2026-09-17`
 
-## How it works
+Prefilter keeps two bank rows. Ranks (k=60):
 
-Prefilter first so fuzzy matching never scans the whole statement. RRF merges
-rank lists without forcing every score into the same numeric scale. Glossary:
-**RapidFuzz**, **RRF**, **FOR UPDATE**, **prefilter**.
+| Candidate | Fuzzy rank | Amount rank | RRF score |
+| --- | --- | --- | --- |
+| A HOTEL ADLON… | 1 | 1 | 1/61 + 1/61 ≈ **0.0328** |
+| B LUFTHANSA… | 2 | 2 | 1/62 + 1/62 ≈ **0.0323** |
 
-**Key paths:** `services/reconciliation.py`, `api/v1/reconciliation.py`
+A wins. If the top-two RRF scores are within the ambiguity margin, the expense
+goes to `pending_review` instead of auto-match.
+
+Confirm uses `SELECT … FOR UPDATE` so two reviewers cannot claim the same
+bank line. Currency mismatches are dropped in the prefilter.
+
+## Failure case
+
+Second confirm on an already-matched expense → **409 Conflict**.
+
+## What went wrong once
+
+Weighted sums of RapidFuzz (0–100) and cosine (−1–1) were meaningless. RRF
+only needs order, so missing embeddings degrade gracefully.
+
+**Key paths:** `services/reconciliation.py`, `core/embeddings.py`

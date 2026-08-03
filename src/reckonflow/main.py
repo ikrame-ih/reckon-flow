@@ -16,6 +16,8 @@ from redis.asyncio import Redis
 from reckonflow import __version__
 from reckonflow.api.errors import register_exception_handlers
 from reckonflow.api.middleware.idempotency import IdempotencyMiddleware
+from reckonflow.api.middleware.rate_limit import RateLimitMiddleware
+from reckonflow.api.middleware.request_id import RequestIdMiddleware
 from reckonflow.api.v1 import api_router
 from reckonflow.api.v1.health import router as health_router
 from reckonflow.core.config import get_settings
@@ -30,6 +32,7 @@ ledger, LLM receipt extraction, and hybrid bank reconciliation.
 
 - Money is always a **string** in JSON. JSON numbers are floats in most
   clients, and a float has no place in a ledger.
+- Mutating endpoints require `X-API-Key` when `API_KEY` is configured.
 - Every mutating endpoint honours an `Idempotency-Key` header. The first call
   with a given key runs; a retry replays the stored response and is marked
   with `Idempotency-Replayed: true`.
@@ -40,7 +43,7 @@ ledger, LLM receipt extraction, and hybrid bank reconciliation.
 """
 
 TAGS_METADATA = [
-    {"name": "health", "description": "Liveness probes."},
+    {"name": "health", "description": "Liveness and dependency probes."},
     {"name": "accounts", "description": "Chart of accounts and balances."},
     {
         "name": "ledger",
@@ -79,6 +82,7 @@ def create_app(*, redis_factory: Callable[[], Redis] | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Outer middleware runs first on the way in (request-id → rate limit → idempotency)
     app.add_middleware(
         IdempotencyMiddleware,
         redis_factory=redis_factory or get_redis,
@@ -86,16 +90,25 @@ def create_app(*, redis_factory: Callable[[], Redis] | None = None) -> FastAPI:
         enabled=settings.idempotency_enabled,
         key_prefix=settings.redis_key_prefix,
     )
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=settings.rate_limit_per_minute,
+        enabled=settings.rate_limit_enabled,
+    )
+    app.add_middleware(RequestIdMiddleware)
     register_exception_handlers(app)
+
+    if settings.metrics_enabled:
+        from prometheus_fastapi_instrumentator import Instrumentator
+
+        Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
     @app.get("/", include_in_schema=False)
     async def root() -> RedirectResponse:
         """Send browsers to the interactive docs — there is no HTML home page"""
         return RedirectResponse(url="/docs")
 
-    # Top-level probe: GET /health
     app.include_router(health_router)
-    # Versioned API under /api/v1
     app.include_router(api_router, prefix=settings.api_v1_prefix)
     return app
 

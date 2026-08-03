@@ -38,6 +38,12 @@ async def test_new_request_opens_a_pending_approval(session: AsyncSession) -> No
 async def test_full_happy_path_pending_to_approved_to_paid(
     session: AsyncSession,
 ) -> None:
+    from reckonflow.services.ledger import LedgerService
+
+    ledger = LedgerService(session)
+    await ledger.create_account(code="CASH", name="Cash")
+    await ledger.create_account(code="TRAVEL", name="Travel")
+
     service = TravelService(session)
     request = await service.get_travel_request(await _request(service))
     assert request.approval is not None
@@ -52,9 +58,16 @@ async def test_full_happy_path_pending_to_approved_to_paid(
     paid = await service.transition_approval(approval_id, target=ApprovalStatus.PAID)
     assert paid.status == ApprovalStatus.PAID
 
+    from sqlalchemy import func, select
+
+    from reckonflow.models import LedgerTransaction
+
+    count = await session.scalar(select(func.count()).select_from(LedgerTransaction))
+    assert count == 1
+
 
 async def test_pending_cannot_jump_straight_to_paid(session: AsyncSession) -> None:
-    """This is the control that stops money leaving without a decision"""
+    """Pending → paid is illegal; approval must happen first"""
     service = TravelService(session)
     request = await service.get_travel_request(await _request(service))
     assert request.approval is not None
@@ -80,7 +93,13 @@ async def test_rejected_is_terminal(session: AsyncSession) -> None:
 
 
 async def test_paid_cannot_be_paid_again(session: AsyncSession) -> None:
-    """Re-marking a payment is exactly how a duplicate reimbursement happens"""
+    """PAID is terminal — remaking payment would double-reimburse"""
+    from reckonflow.services.ledger import LedgerService
+
+    ledger = LedgerService(session)
+    await ledger.create_account(code="CASH", name="Cash")
+    await ledger.create_account(code="TRAVEL", name="Travel")
+
     service = TravelService(session)
     request = await service.get_travel_request(await _request(service))
     assert request.approval is not None
@@ -108,19 +127,38 @@ async def test_pending_queue_can_be_listed(session: AsyncSession) -> None:
 
 async def test_expense_can_hang_off_a_travel_request(session: AsyncSession) -> None:
     service = TravelService(session)
-    request_id = await _request(service)
+    request = await service.get_travel_request(await _request(service))
+    assert request.approval is not None
+    await service.transition_approval(
+        request.approval.id, target=ApprovalStatus.APPROVED
+    )
 
     expense = await service.create_expense(
-        travel_request_id=request_id,
+        travel_request_id=request.id,
         vendor="Hotel Adlon",
         description="3 nights, Berlin",
         amount=Decimal("612.40"),
         expense_date=date(2026, 9, 17),
     )
 
-    assert expense.travel_request_id == request_id
+    assert expense.travel_request_id == request.id
     assert expense.match_status == "unmatched"
-    assert len(await service.list_expenses(travel_request_id=request_id)) == 1
+    assert expense.embedding is not None
+    assert len(await service.list_expenses(travel_request_id=request.id)) == 1
+
+
+async def test_expense_on_pending_trip_is_rejected(session: AsyncSession) -> None:
+    service = TravelService(session)
+    request_id = await _request(service)
+
+    with pytest.raises(InvalidStateTransitionError):
+        await service.create_expense(
+            travel_request_id=request_id,
+            vendor="Hotel Adlon",
+            description="3 nights, Berlin",
+            amount=Decimal("612.40"),
+            expense_date=date(2026, 9, 17),
+        )
 
 
 async def test_expense_on_an_unknown_trip_is_rejected(session: AsyncSession) -> None:
@@ -134,3 +172,42 @@ async def test_expense_on_an_unknown_trip_is_rejected(session: AsyncSession) -> 
             amount=Decimal("612.40"),
             expense_date=date(2026, 9, 17),
         )
+
+
+async def test_postgres_transition_emits_select_for_update() -> None:
+    """PostgreSQL approval transitions emit SELECT ... FOR UPDATE"""
+    from types import SimpleNamespace
+    from typing import Any
+    from unittest.mock import AsyncMock, MagicMock
+
+    statements: list[str] = []
+
+    async def execute(statement: Any, *args: Any, **kwargs: Any) -> Any:
+        statements.append(str(statement))
+        row = MagicMock()
+        row.scalar_one_or_none.return_value = SimpleNamespace(
+            id=1,
+            status=ApprovalStatus.PENDING.value,
+            reviewer=None,
+            notes=None,
+        )
+        return row
+
+    session = MagicMock()
+    session.execute = AsyncMock(side_effect=execute)
+    session.flush = AsyncMock()
+    session.refresh = AsyncMock()
+    session.get_bind.return_value = SimpleNamespace(
+        dialect=SimpleNamespace(name="postgresql")
+    )
+
+    service = TravelService(session)
+    await service.transition_approval(1, target=ApprovalStatus.APPROVED)
+
+    assert len(statements) == 1
+    assert "FOR UPDATE" in statements[0]
+
+
+async def test_sqlite_transition_skips_for_update(session: AsyncSession) -> None:
+    service = TravelService(session)
+    assert service._supports_for_update() is False

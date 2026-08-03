@@ -1,7 +1,8 @@
 """Aggregate API v1 routers — main.py mounts this single object."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from reckonflow.api.deps import require_api_key
 from reckonflow.api.v1 import (
     accounts,
     approvals,
@@ -14,7 +15,7 @@ from reckonflow.api.v1 import (
     travel,
 )
 
-api_router = APIRouter()
+api_router = APIRouter(dependencies=[Depends(require_api_key)])
 api_router.include_router(health.router)
 api_router.include_router(accounts.router)
 api_router.include_router(ledger.router)
