@@ -9,11 +9,12 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import RedirectResponse
 from redis.asyncio import Redis
 
 from reckonflow import __version__
+from reckonflow.api.deps import require_api_key_always
 from reckonflow.api.errors import register_exception_handlers
 from reckonflow.api.middleware.idempotency import IdempotencyMiddleware
 from reckonflow.api.middleware.rate_limit import RateLimitMiddleware
@@ -32,7 +33,8 @@ ledger, LLM receipt extraction, and hybrid bank reconciliation.
 
 - Money is always a **string** in JSON. JSON numbers are floats in most
   clients, and a float has no place in a ledger.
-- Mutating endpoints require `X-API-Key` when `API_KEY` is configured.
+- Mutating endpoints and `GET /metrics` require `X-API-Key` when `API_KEY`
+  is configured.
 - Every mutating endpoint honours an `Idempotency-Key` header. The first call
   with a given key runs; a retry replays the stored response and is marked
   with `Idempotency-Replayed: true`.
@@ -101,7 +103,12 @@ def create_app(*, redis_factory: Callable[[], Redis] | None = None) -> FastAPI:
     if settings.metrics_enabled:
         from prometheus_fastapi_instrumentator import Instrumentator
 
-        Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+        Instrumentator().instrument(app).expose(
+            app,
+            endpoint="/metrics",
+            include_in_schema=False,
+            dependencies=[Depends(require_api_key_always)],
+        )
 
     @app.get("/", include_in_schema=False)
     async def root() -> RedirectResponse:

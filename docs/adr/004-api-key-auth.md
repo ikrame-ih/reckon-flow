@@ -14,7 +14,8 @@ interviewers rightly ask how access is controlled.
 
 Require an `X-API-Key` header on **mutating** methods (`POST`/`PUT`/`PATCH`/
 `DELETE`) when the `API_KEY` environment variable is set. Reads and
-`GET /health` stay open for probes and Swagger exploration.
+`GET /health` stay open for probes and Swagger exploration. `GET /metrics`
+also requires the key when configured — scrape endpoints should not be public.
 
 - Empty `API_KEY` disables the gate (local development and CI).
 - Keys are compared with `secrets.compare_digest` to avoid timing leaks.

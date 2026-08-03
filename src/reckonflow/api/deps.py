@@ -25,6 +25,18 @@ DbSession = Annotated[AsyncSession, Depends(get_db)]
 MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
+def _reject_bad_api_key(x_api_key: str | None) -> None:
+    expected = get_settings().api_key
+    if not expected:
+        return
+    if not x_api_key or not secrets.compare_digest(x_api_key, expected):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing X-API-Key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+
 async def require_api_key(
     request: Request,
     x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
@@ -36,17 +48,14 @@ async def require_api_key(
     """
     if request.method not in MUTATING_METHODS:
         return
+    _reject_bad_api_key(x_api_key)
 
-    expected = get_settings().api_key
-    if not expected:
-        return
 
-    if not x_api_key or not secrets.compare_digest(x_api_key, expected):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing X-API-Key",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
+async def require_api_key_always(
+    x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
+) -> None:
+    """Gate any method when API_KEY is set — used for /metrics"""
+    _reject_bad_api_key(x_api_key)
 
 
 def get_ledger_service(session: DbSession) -> LedgerService:

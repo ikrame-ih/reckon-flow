@@ -23,6 +23,7 @@ ReckonFlow is a headless financial API. Attackers might try to:
 | Float money | High | **OK** | `MoneyStr` + `parse_money` reject `float`. |
 | Secrets in repo | High | **OK** | `.env` gitignored; config from environment. Rotate any secret that was ever pasted into a chat or screenshot. |
 | Auth | High | **Mitigated** | Mutating routes require `X-API-Key` when `API_KEY` is set (ADR 004). Empty key disables the gate for local/CI. |
+| Metrics exposure | Low | **Mitigated** | `GET /metrics` requires the same `X-API-Key` when configured; open only when `API_KEY` is empty. |
 | Duplicate POSTs | Medium | **Mitigated** | Idempotency middleware; fails open if Redis is down (availability over strictness — see ADR 003). |
 | Concurrent match writes | Medium | **Mitigated** | `FOR UPDATE` when linking expense ↔ bank row; unique constraints on match links. |
 | Rate limiting | Low | **Mitigated** | In-process sliding window (`RATE_LIMIT_PER_MINUTE`); Redis token bucket for multi-instance later. |
