@@ -62,17 +62,29 @@ def get_settings() -> Settings:
 def async_database_url(url: str | None = None) -> str:
     """I rewrite hosted Postgres URLs for SQLAlchemy async + asyncpg
 
-    Neon and many dashboards hand out postgres:// or postgresql:// links
-    asyncpg needs postgresql+asyncpg:// and ssl=require on Neon
+    Neon hands out postgres:// links with sslmode= and channel_binding=
+    asyncpg rejects channel_binding and wants ssl=require instead of sslmode
     """
+    from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
     raw = url if url is not None else get_settings().database_url
     if raw.startswith("postgres://"):
         raw = "postgresql+asyncpg://" + raw.removeprefix("postgres://")
     elif raw.startswith("postgresql://") and "+asyncpg" not in raw:
         raw = "postgresql+asyncpg://" + raw.removeprefix("postgresql://")
-    if "ssl=" not in raw and ("neon.tech" in raw or "sslmode=" in raw):
-        raw = raw.replace("sslmode=require", "ssl=require")
-        if "ssl=" not in raw:
-            joiner = "&" if "?" in raw else "?"
-            raw = f"{raw}{joiner}ssl=require"
-    return raw
+
+    parsed = urlparse(raw)
+    # I drop params asyncpg does not understand (Neon adds channel_binding)
+    dropped = {"channel_binding", "sslmode"}
+    query = {
+        key: value
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() not in dropped
+    }
+    host = parsed.hostname or ""
+    if "ssl" not in {k.lower() for k in query} and (
+        "neon.tech" in host or "sslmode=" in (url or raw)
+    ):
+        query["ssl"] = "require"
+
+    return urlunparse(parsed._replace(query=urlencode(query)))
