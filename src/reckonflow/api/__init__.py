@@ -1,1 +1,1 @@
-"""HTTP API package."""
+"""I group HTTP API packages"""

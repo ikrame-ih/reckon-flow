@@ -1,1 +1,1 @@
-"""Pydantic request/response schemas."""
+"""I group Pydantic request/response schemas"""

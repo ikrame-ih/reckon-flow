@@ -1,7 +1,7 @@
-"""FastAPI application factory.
+"""I build the FastAPI application
 
-create_app() builds the app object. Keeping this in a function makes
-testing easier: tests can create a fresh app without starting uvicorn.
+I keep create_app() as a factory so my tests can spin up a fresh app
+without starting uvicorn
 """
 
 from fastapi import FastAPI
@@ -14,7 +14,7 @@ from reckonflow.core.logging import setup_logging
 
 
 def create_app() -> FastAPI:
-    """Build the ReckonFlow API application (Phase 0 skeleton)."""
+    """I assemble the ReckonFlow API (Phase 0 skeleton)"""
     settings = get_settings()
     setup_logging(debug=settings.debug)
 
@@ -28,9 +28,9 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
     )
-    # Top-level probe: GET /health
+    # I expose a top-level probe at GET /health
     app.include_router(health_router)
-    # Versioned API: GET /api/v1/health (same handler for now)
+    # I also mount the same health route under the versioned API prefix
     app.include_router(api_router, prefix=settings.api_v1_prefix)
     return app
 
@@ -39,7 +39,7 @@ app = create_app()
 
 
 def run() -> None:
-    """CLI entrypoint used by `uv run reckonflow`."""
+    """I start uvicorn when I run `uv run reckonflow`"""
     import uvicorn
 
     uvicorn.run(

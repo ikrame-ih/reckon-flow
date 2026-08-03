@@ -1,1 +1,1 @@
-"""Shared core utilities."""
+"""I group shared core utilities"""

@@ -1,7 +1,7 @@
-"""Structured logging setup with structlog.
+"""I set up structured logging with structlog
 
-Plain print() is fine while learning, but structured logs (with fields
-like timestamp and level) are easier to search later in production.
+I prefer logs with fields like timestamp and level over plain print
+so I can search them later in production
 """
 
 import logging
@@ -11,7 +11,7 @@ import structlog
 
 
 def setup_logging(*, debug: bool = False) -> None:
-    """Configure structlog for local development or production."""
+    """I configure structlog for local development or production"""
     level = logging.DEBUG if debug else logging.INFO
 
     logging.basicConfig(format="%(message)s", stream=sys.stdout, level=level)
@@ -57,6 +57,6 @@ def setup_logging(*, debug: bool = False) -> None:
 
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
-    """Return a named structured logger."""
+    """I return a named structured logger"""
     logger: structlog.stdlib.BoundLogger = structlog.get_logger(name)
     return logger

@@ -1,7 +1,7 @@
-"""API v1 router aggregation.
+"""I aggregate API v1 routers
 
-Phase 0 only mounts the health route. Later phases add ledger, travel,
-expenses, and reconciliation routers here.
+In Phase 0 I only mount health
+Later I will add ledger, travel, expenses, and reconciliation routers here
 """
 
 from fastapi import APIRouter

@@ -1,7 +1,7 @@
-"""Phase 0: health endpoint smoke test.
+"""I smoke-test the Phase 0 health endpoint
 
-We use FastAPI's TestClient so we can call the API in-process
-without starting a real HTTP server.
+I use FastAPI's TestClient so I can call the API in-process
+without starting a real HTTP server
 """
 
 from fastapi.testclient import TestClient
