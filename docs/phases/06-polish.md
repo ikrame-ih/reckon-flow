@@ -2,8 +2,8 @@
 
 ## Goal
 
-Runnable demo: seed data, OpenAPI, Render + Neon + Upstash, docs site, auth
-story.
+Seed data, OpenAPI, Render + Neon + Upstash, docs site, and an API-key story
+for mutating routes.
 
 ## Deploy shape
 
@@ -21,13 +21,10 @@ only for local exploration.
 
 1. Open [Swagger](https://reckon-flow.onrender.com/docs)
 2. `GET /api/v1/accounts` — CASH and TRAVEL
-3. `GET /api/v1/expenses` then `POST /api/v1/reconciliation/expenses/{id}/suggest`
+3. `GET /api/v1/expenses` then `GET /api/v1/reconciliation/expenses/{id}/suggestions`
 
 Free Render sleeps when idle — first request can take ~50s.
 
-## What went wrong once
-
 Neon URLs include `channel_binding=require`, which asyncpg rejects. The URL
 rewriter in `core/config.py` strips it and maps `sslmode` → `ssl=require`.
-
-**Key paths:** `scripts/seed_demo.py`, `scripts/render_start.sh`, ADR 004
+See also ADR 004 and `scripts/seed_demo.py`.

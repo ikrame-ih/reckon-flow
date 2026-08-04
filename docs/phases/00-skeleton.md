@@ -25,10 +25,6 @@ curl http://localhost:8000/health
 # {"status":"ok","app":"ReckonFlow","version":"0.1.0"}
 ```
 
-## What went wrong once
-
-I initially mixed module-level `app = FastAPI()` with test overrides. Moving
-to a factory made Redis/middleware injection trivial.
-
-**Key paths:** `src/reckonflow/main.py`, `core/config.py`, `core/logging.py`,
-`.github/workflows/ci.yml`
+Early on I mixed a module-level `app = FastAPI()` with test overrides. A factory
+made Redis and middleware injection straightforward. See `main.py`,
+`core/config.py`, and `core/logging.py`.
