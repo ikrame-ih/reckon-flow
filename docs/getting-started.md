@@ -41,7 +41,7 @@ After each deploy, `GET /health` should show `"status":"ok"` with both
 
 1. `DATABASE_URL` — Neon URL with `postgresql+asyncpg://` and `ssl=require`
 2. `REDIS_URL` — Upstash **`rediss://`** URL (TLS). Rotate the token if it
-   was ever pasted into chat, then paste the new value into Render.
+   was ever exposed, then paste the new value into Render.
 3. `API_KEY` — non-empty; mutating routes return 401 without `X-API-Key`
 4. Confirm start logs include `alembic upgrade head` reaching revision `002`
 

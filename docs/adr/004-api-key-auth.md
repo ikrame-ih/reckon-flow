@@ -7,8 +7,9 @@
 ## Context
 
 ReckonFlow exposes mutating finance endpoints (approve, pay, post ledger,
-import bank CSV). An unauthenticated public URL is fine for a short demo, but
-interviewers rightly ask how access is controlled.
+import bank CSV). An unauthenticated public URL is fine for a short-lived
+demo, but any finance API needs an access-control answer before it faces
+the internet.
 
 ## Decision
 

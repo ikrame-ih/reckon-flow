@@ -23,4 +23,4 @@ I treat every receipt as untrusted data:
 
 - Extraction stays a pure transform: bytes/text → structured fields
 - Even a successful jailbreak has no action surface inside the schema
-- Reviewers still validate high-risk matches in the reconciliation UI/API
+- Reviewers still validate high-risk matches in the reconciliation API

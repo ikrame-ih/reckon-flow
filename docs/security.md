@@ -21,7 +21,7 @@ ReckonFlow is a headless financial API. Attackers might try to:
 | Path traversal on receipts | High | **Fixed/hardened** | `safe_filename()` strips path segments; `_resolve_storage_path()` ensures the final path stays under `receipt_storage_dir` on write and read. |
 | Prompt injection via receipts | Medium | **Mitigated** | `ReceiptExtraction` uses `extra="forbid"`; extractor cannot approve/pay/post. See [ADR 002](adr/002-receipt-untrusted-input.md). |
 | Float money | High | **OK** | `MoneyStr` + `parse_money` reject `float`. |
-| Secrets in repo | High | **OK** | `.env` gitignored; config from environment. Rotate any secret that was ever pasted into a chat or screenshot. |
+| Secrets in repo | High | **OK** | `.env` gitignored; config from environment. Rotate any secret that was ever exposed (ticket, screenshot, shared terminal). |
 | Auth | High | **Mitigated** | Mutating routes require `X-API-Key` when `API_KEY` is set (ADR 004). Empty key disables the gate for local/CI. |
 | Metrics exposure | Low | **Mitigated** | `GET /metrics` requires the same `X-API-Key` when configured; open only when `API_KEY` is empty. |
 | Duplicate POSTs | Medium | **Mitigated** | Idempotency middleware; fails open if Redis is down (availability over strictness — see ADR 003). |
