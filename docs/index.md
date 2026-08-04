@@ -20,10 +20,10 @@ background (Groq or stub). Matching uses SQL prefilter + RapidFuzz + RRF.
 
 <div class="rf-cards" markdown="1">
 
-<a href="getting-started.md"><strong>Getting started</strong><span>Clone, migrate, seed, run</span></a>
-<a href="phases/index.md"><strong>Build phases</strong><span>Ledger → travel → recon</span></a>
-<a href="glossary.md"><strong>Glossary</strong><span>Idempotency, RRF, MoneyStr…</span></a>
-<a href="security.md"><strong>Security</strong><span>Checks and accepted risks</span></a>
-<a href="adr/README.md"><strong>ADRs</strong><span>Why these trade-offs</span></a>
+<a href="getting-started/"><strong>Getting started</strong><span>Clone, migrate, seed, run</span></a>
+<a href="phases/"><strong>Build phases</strong><span>Ledger → travel → recon</span></a>
+<a href="glossary/"><strong>Glossary</strong><span>Idempotency, RRF, MoneyStr…</span></a>
+<a href="security/"><strong>Security</strong><span>Checks and accepted risks</span></a>
+<a href="adr/"><strong>ADRs</strong><span>Why these trade-offs</span></a>
 
 </div>
