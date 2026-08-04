@@ -6,25 +6,28 @@
 
 ## Context
 
-ReckonFlow is a transactional API (OLTP): it records travel approvals,
-ledger entries, receipt extractions, and bank matches in near real time.
-dbt fits analytics warehouses (OLAP), not request-path validation for an API.
+When I sketched ReckonFlow I assumed dbt would sit in the middle: bank
+CSVs and invoice payloads land in a raw zone, dbt models clean and join
+them, and the API reads from a reconciliation mart.
+
+That picture fits a warehouse. ReckonFlow is not one. A trip approval,
+a ledger post, and a bank match have to happen on the request path, with
+row locks and idempotent retries. Waiting on a batch transform (or
+pretending dbt is my validation layer) fights that shape.
 
 ## Decision
 
-Do **not** use dbt in ReckonFlow.
+I dropped dbt from the stack.
 
-Keep row validation and shaping in the application layer:
+CSV rows and API bodies are validated with Pydantic as they arrive.
+Alembic owns the schema. Matching and money rules stay in the service
+layer next to the endpoints that call them.
 
-- Pydantic models validate CSV bank rows and API payloads
-- SQLAlchemy + Alembic own the schema and migrations
-- Business rules live in the service layer
-
-Leave dbt as a **future option** only if a reporting / analytics layer is
-added on top of exported ledger data.
+If I ever need analyst-facing marts on top of exported ledger data, dbt
+can come back for that layer alone — not for the live API.
 
 ## Consequences
 
-- One less tool in the stack — faster onboarding and CI
-- Transformations stay in the service layer next to the domain rules they enforce
-- Marts can be introduced later without rewriting the ledger
+Fewer moving parts in CI and local setup. Domain rules live in one place
+instead of being split between Python and SQL models. Adding reporting
+later does not require rewriting the ledger.
