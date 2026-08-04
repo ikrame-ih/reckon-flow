@@ -78,7 +78,7 @@ Interesting decisions (detail in docs / ADRs):
 
 - Auth is a **shared API key** on mutating routes — no roles, tenants, or ownership yet (ADR 004).
 - Receipt work uses FastAPI **BackgroundTasks**, not a durable queue (ADR 005).
-- Rate limiting is **in-process**; multi-instance needs a shared store.
+- Rate limiting uses **Redis** (fixed window) with an in-memory fallback when Redis is down (ADR 006).
 - Embeddings are a **deterministic stand-in** offline; optional real vectors later.
 - Demo storage for receipts is local disk (ephemeral on free PaaS).
 
@@ -159,8 +159,8 @@ scripts/        # seed_demo, run_evals, render_start
 ## Possible next steps
 
 If this grew past a portfolio API: OIDC + roles, a durable job queue (arq/Celery)
-for receipts, Redis-backed rate limits, and real embedding providers behind the
-same reconciliation interface.
+for receipts, and real embedding providers behind the same reconciliation
+interface.
 
 ## Documentation
 
@@ -175,3 +175,5 @@ same reconciliation interface.
 **Ikrame Ibn Hayoun** — [Portfolio](https://ikrame.dev/) · [GitHub](https://github.com/ikrame-ih) · [LinkedIn](https://www.linkedin.com/in/ikrame-ih/)
 
 Vulnerability reports: [SECURITY.md](./SECURITY.md). Contributing notes: [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+MIT — see [LICENSE](./LICENSE).

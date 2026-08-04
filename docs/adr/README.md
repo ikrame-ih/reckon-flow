@@ -7,3 +7,4 @@
 | [003](003-redis-idempotency.md) | Redis idempotency with cached responses | Accepted |
 | [004](004-api-key-auth.md) | API-key auth scope | Accepted |
 | [005](005-background-tasks.md) | BackgroundTasks vs durable queue | Accepted |
+| [006](006-redis-rate-limit.md) | Redis rate limiting with memory fallback | Accepted |

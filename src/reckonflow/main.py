@@ -96,6 +96,8 @@ def create_app(*, redis_factory: Callable[[], Redis] | None = None) -> FastAPI:
         RateLimitMiddleware,
         requests_per_minute=settings.rate_limit_per_minute,
         enabled=settings.rate_limit_enabled,
+        redis_factory=redis_factory or get_redis,
+        key_prefix=settings.redis_key_prefix,
     )
     app.add_middleware(RequestIdMiddleware)
     register_exception_handlers(app)
