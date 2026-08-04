@@ -35,23 +35,13 @@ After [seed](#quick-start) (or on the live demo once seeded):
 
 Mutating calls on production should send `X-API-Key` when that env var is set.
 
-![Demo walkthrough](docs/assets/demo-walkthrough.gif)
+<p align="center">
+  <img src="docs/assets/demo-walkthrough.gif" alt="Demo: accounts → expenses → suggestions" width="560" />
+</p>
 
-![Swagger: reconciliation suggest](docs/assets/swagger-recon.png)
-
-```mermaid
-flowchart TD
-  Client[API Client] --> MW[Idempotency Middleware]
-  MW -->|"SET NX EX 86400"| Redis[(Redis)]
-  MW --> Routers[FastAPI Routers]
-  Routers --> Services[Service Layer]
-  Services --> PG[(PostgreSQL)]
-  Routers -->|"202 Accepted"| BG[Background Tasks]
-  BG --> LLM[Groq / stub]
-  LLM -->|Structured receipt data| Services
-  Services --> Recon[SQL + RapidFuzz + RRF]
-  Recon --> PG
-```
+Request path: client → idempotency middleware (Redis) → routers → services →
+Postgres; receipt uploads return 202 and extract in the background. Full diagram
+on the [docs site](https://ikrame-ih.github.io/reckon-flow/).
 
 ## Stack
 
