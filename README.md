@@ -27,21 +27,15 @@ failures show up as duplicate reimbursements and silent mismatches.
 
 ## 30-second demo
 
-After [seed](#quick-start) (or on the live demo once seeded):
+After [seed](#quick-start) (or on the live [Swagger demo](https://reckon-flow.onrender.com/docs) once seeded):
 
 1. `GET /api/v1/accounts` → `CASH`, `TRAVEL`
 2. `GET /api/v1/expenses` → note an expense `id`
 3. `GET /api/v1/reconciliation/expenses/{id}/suggestions` → ranked bank candidates
 
 Mutating calls on production should send `X-API-Key` when that env var is set.
-
-<p align="center">
-  <img src="docs/assets/demo-walkthrough.gif" alt="Demo: accounts → expenses → suggestions" width="560" />
-</p>
-
-Request path: client → idempotency middleware (Redis) → routers → services →
-Postgres; receipt uploads return 202 and extract in the background. Full diagram
-on the [docs site](https://ikrame-ih.github.io/reckon-flow/).
+Architecture and walkthroughs live on the
+[docs site](https://ikrame-ih.github.io/reckon-flow/).
 
 ## Stack
 
