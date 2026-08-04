@@ -49,7 +49,6 @@ nav:
       - "4 — Receipt extraction": phases/04-receipts.md
       - "5 — Reconciliation": phases/05-reconciliation.md
       - "6 — Polish & deploy": phases/06-polish.md
-      - "7 — Follow-ups": phases/07-follow-ups.md
   - Glossary: glossary.md
   - Security: security.md
   - ADRs:
