@@ -1,15 +1,6 @@
-# Contributing to ReckonFlow
+# Contributing
 
-Thanks for reading the code. A few conventions keep the project readable.
-
-## Comments and docstrings
-
-- Prefer short comments that explain **why** (a constraint, a risk, or a
-  design choice), not a restatement of the next line.
-- Write in plain English. First person is fine when it sounds natural;
-  otherwise use a clear third-person note.
-
-## Code layout
+## Layout
 
 | Package | Role |
 | --- | --- |
@@ -20,7 +11,8 @@ Thanks for reading the code. A few conventions keep the project readable.
 | `ai/` | Receipt extractors (Groq or stub) |
 | `core/` | Settings, DB, money helpers, logging |
 
-Money crosses the API as **JSON strings**, never floats.
+Money crosses the API as JSON strings, never floats. Prefer short comments
+that explain a constraint or risk, not a restatement of the next line.
 
 ## Local checks
 
@@ -34,7 +26,4 @@ uv run pip-audit
 uv run python scripts/run_evals.py
 ```
 
-## Docs site
-
-Project documentation (phases, glossary, ADRs) lives under `docs/` and is
-built with MkDocs Material → [GitHub Pages](https://ikrame-ih.github.io/reckon-flow/).
+Docs: [GitHub Pages](https://ikrame-ih.github.io/reckon-flow/) (`docs/` → MkDocs Material).
