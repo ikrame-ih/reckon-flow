@@ -1,7 +1,7 @@
 # Build phases
 
-ReckonFlow was built in six phases. Each page has a worked example, a failure
-case, and a short note on what broke during development.
+ReckonFlow was built in six phases. Each page has a worked example and the
+failure mode that matters for that phase.
 
 | Phase | Focus |
 | --- | --- |

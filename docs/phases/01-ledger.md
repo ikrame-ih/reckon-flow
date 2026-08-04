@@ -34,11 +34,7 @@ An unbalanced body returns **422** and leaves **zero** rows:
 ```
 
 Postgres also has a deferred trigger so a buggy script cannot commit an
-unbalanced set even if it bypasses the service.
+unbalanced set even if it bypasses the service. Balances leave the API as
+`MoneyStr` (JSON strings) so clients never round float money.
 
-## What went wrong once
-
-I first returned balances as floats in JSON. Client JS rounded them. Switching
-to `MoneyStr` fixed silent drift.
-
-**Key paths:** `core/money.py`, `services/ledger.py`, `alembic/versions/001_*.py`
+Paths: `core/money.py`, `services/ledger.py`, `alembic/versions/001_*.py`

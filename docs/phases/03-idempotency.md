@@ -26,10 +26,6 @@ expire after 24h. See the [glossary](../glossary.md#set-nx-ex-86400).
 While the first request is still running, a retry gets **409**
 `IdempotencyConflict`. If Redis is down, the middleware **fails open**
 (request proceeds, retry protection is lost) — documented in
-[ADR 003](../adr/003-redis-idempotency.md).
-
-## Bug that slipped through once
-
-Rebuilding the cached response dropped FastAPI `BackgroundTasks`, so receipt
-extraction never ran when a key was sent. The rebuild now copies `background`
-across (`api/middleware/idempotency.py`).
+[ADR 003](../adr/003-redis-idempotency.md). The response rebuild must keep
+FastAPI `BackgroundTasks` attached so receipt extraction still runs when a
+key is present (`api/middleware/idempotency.py`).

@@ -6,24 +6,36 @@ repo_name: ikrame-ih/reckon-flow
 
 theme:
   name: material
+  font:
+    text: Source Sans 3
+    code: IBM Plex Mono
   palette:
-    - scheme: default
-      primary: blue grey
-      accent: teal
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: amber
       toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - scheme: slate
-      primary: blue grey
-      accent: teal
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: amber
       toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+        icon: material/weather-sunny
+        name: Light mode
   features:
+    - navigation.instant
     - navigation.sections
     - navigation.expand
+    - navigation.top
+    - toc.follow
     - content.code.copy
     - search.suggest
+    - search.highlight
+
+extra_css:
+  - stylesheets/extra.css
 
 nav:
   - Home: index.md
@@ -49,13 +61,16 @@ nav:
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
   - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
-  - pymdownx.highlight
+  - pymdownx.highlight:
+      anchor_linenums: true
   - pymdownx.inlinehilite
   - tables
   - toc:

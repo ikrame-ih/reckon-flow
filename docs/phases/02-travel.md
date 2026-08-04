@@ -34,8 +34,9 @@ POST /api/v1/expenses
 ```
 
 `mark_paid` posts a balanced ledger transaction (TRAVEL debit / CASH credit)
-using the trip's estimated amount. Expenses on a still-pending trip are
-rejected — spend only attaches after approval.
+from the sum of linked expenses when present, otherwise the trip estimate.
+Expenses on a still-pending trip are rejected — spend only attaches after
+approval.
 
 ## Failure case
 
@@ -44,9 +45,7 @@ POST .../transition  {"action": "mark_paid"}   # while still pending
 → 409 InvalidStateTransitionError
 ```
 
-## What went wrong once
+The approval-status check is what stops spend attaching to a rejected or
+still-pending trip.
 
-Expenses originally linked to any trip id. Rejected trips still accepted
-spend. The approval-status check closed that hole.
-
-**Key paths:** `services/travel.py`, `services/bank.py`, `api/v1/approvals.py`
+Paths: `services/travel.py`, `services/bank.py`, `api/v1/approvals.py`

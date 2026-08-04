@@ -26,9 +26,8 @@ bank line. Currency mismatches are dropped in the prefilter.
 
 Second confirm on an already-matched expense → **409 Conflict**.
 
-## What went wrong once
+RapidFuzz scores (0–100) and embedding cosine (−1–1) are not on one scale, so
+RRF merges **ranks** instead of weighted averages. Missing embeddings then
+degrade gracefully.
 
-Weighted sums of RapidFuzz (0–100) and cosine (−1–1) were meaningless. RRF
-only needs order, so missing embeddings degrade gracefully.
-
-**Key paths:** `services/reconciliation.py`, `core/embeddings.py`
+Paths: `services/reconciliation.py`, `core/embeddings.py`

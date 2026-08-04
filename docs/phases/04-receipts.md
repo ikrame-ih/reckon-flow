@@ -31,11 +31,8 @@ key, Groq + PydanticAI fill `ReceiptExtraction` (`extra="forbid"`).
 | multilingual_fr | amount + date |
 
 Gate in CI: overall field accuracy must stay above the threshold in
-`scripts/run_evals.py`.
+`scripts/run_evals.py`. The model only fills `ReceiptExtraction` — it has no
+fields that can approve or pay. Containment is the schema (`extra="forbid"`),
+not prompt wording. See ADR 002.
 
-## What went wrong once
-
-An early prompt said “extract and approve if under policy.” That was removed —
-the model has no action fields. Containment is the schema, not the prose.
-
-**Key paths:** `ai/groq_provider.py`, `ai/stub.py`, `evals/`, ADR 002
+Paths: `ai/groq_provider.py`, `ai/stub.py`, `evals/`
