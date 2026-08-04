@@ -1,24 +1,41 @@
 """Shared test fixtures
 
-Database tests use in-memory SQLite so pytest needs no Docker or network.
-Models create cleanly on both dialects — embeddings fall back to JSON, and
-FOR UPDATE is only emitted where supported.
+Default database tests use in-memory SQLite so pytest needs no Docker.
+Postgres-marked tests use DATABASE_URL when it points at PostgreSQL (CI
+service, or a local instance).
 """
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator, Iterator
 
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool, StaticPool
 
-from reckonflow.core.config import get_settings
+from reckonflow.core.config import async_database_url, get_settings
 from reckonflow.core.db import get_db
 from reckonflow.main import create_app
 from reckonflow.models import Base
+
+
+def _postgres_url() -> str | None:
+    raw = os.environ.get("DATABASE_URL", "").strip()
+    if not raw:
+        return None
+    url = async_database_url(raw)
+    if "postgresql" not in url:
+        return None
+    return url
 
 
 @pytest_asyncio.fixture
@@ -41,6 +58,43 @@ async def session() -> AsyncIterator[AsyncSession]:
         yield db_session
 
     await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def pg_engine() -> AsyncIterator[AsyncEngine]:
+    """Engine bound to CI/local Postgres; skips when unavailable"""
+    url = _postgres_url()
+    if url is None:
+        pytest.skip("DATABASE_URL is not a PostgreSQL URL")
+
+    engine = create_async_engine(url, poolclass=NullPool)
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception as exc:  # noqa: BLE001 — connection probe
+        await engine.dispose()
+        pytest.skip(f"PostgreSQL unreachable: {exc}")
+
+    yield engine
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def pg_session(pg_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    """Session on a truncated Postgres schema (migrations applied in CI)"""
+    async with pg_engine.begin() as conn:
+        await conn.execute(
+            text(
+                "TRUNCATE TABLE ledger_entries, ledger_transactions, receipts, "
+                "bank_transactions, expenses, approvals, travel_requests, "
+                "accounts RESTART IDENTITY CASCADE"
+            )
+        )
+
+    maker = async_sessionmaker(pg_engine, class_=AsyncSession, expire_on_commit=False)
+    async with maker() as db_session:
+        yield db_session
+        await db_session.rollback()
 
 
 @pytest.fixture

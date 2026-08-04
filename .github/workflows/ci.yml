@@ -38,6 +38,9 @@ jobs:
       - name: Sync dependencies
         run: uv sync --frozen
 
+      - name: Apply migrations
+        run: uv run alembic upgrade head
+
       - name: Ruff check
         run: uv run ruff check src tests
 
@@ -48,7 +51,7 @@ jobs:
         run: uv run mypy src
 
       - name: Tests with coverage
-        run: uv run pytest --cov=reckonflow --cov-report=term-missing
+        run: uv run pytest --cov=reckonflow --cov-report=term-missing --cov-fail-under=80
 
       - name: Dependency audit
         run: uv run pip-audit
