@@ -32,7 +32,7 @@ def test_parse_money_rejects_garbage() -> None:
 
 
 def test_money_to_str_never_uses_scientific_notation() -> None:
-    """str(Decimal) would render tiny amounts as 1E-4, which breaks clients"""
+    """money_to_str avoids scientific notation"""
     assert money_to_str(Decimal("0.0001")) == "0.0001"
     assert money_to_str(Decimal("1234567.8900")) == "1234567.8900"
 

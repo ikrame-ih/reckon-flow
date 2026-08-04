@@ -70,7 +70,7 @@ async def test_obvious_match_is_suggested_first(session: AsyncSession) -> None:
 async def test_prefilter_drops_rows_outside_the_window(
     session: AsyncSession,
 ) -> None:
-    """Date and amount windows shrink the candidate set before fuzzy matching"""
+    """Prefilter drops out-of-window rows"""
     expense = await _expense(session)
     await _bank_row(session, booking_date=date(2026, 12, 1))  # far outside the window
     await _bank_row(session, amount=Decimal("2500.00"))  # far outside the tolerance
@@ -110,7 +110,7 @@ async def test_already_claimed_rows_are_never_suggested(
 
 
 async def test_negative_bank_amount_still_matches(session: AsyncSession) -> None:
-    """Statements sign a payment negative; the expense form does not"""
+    """Negative bank amounts still match positive expenses"""
     expense = await _expense(session)
     debit = await _bank_row(session, amount=Decimal("-612.40"))
 
@@ -163,12 +163,7 @@ async def test_auto_reconcile_matches_a_clear_winner(session: AsyncSession) -> N
 
 
 async def test_second_reviewer_loses_the_race(session: AsyncSession) -> None:
-    """Concurrency: the row lock plus a post-lock re-check is the guard
-
-    On SQLite I cannot open two real transactions, so I assert the invariant
-    the lock exists to protect: once a bank line is claimed, a second claim
-    for a different expense is refused rather than silently overwriting
-    """
+    """Second claim on an already-matched bank line raises ConflictError"""
     first = await _expense(session)
     second = await _expense(session, vendor="Another traveller")
     bank_row = await _bank_row(session)
@@ -197,10 +192,7 @@ async def test_confirming_twice_for_the_same_expense_conflicts(
 
 
 async def test_postgres_confirm_emits_select_for_update() -> None:
-    """PostgreSQL confirm path emits SELECT ... FOR UPDATE
-
-    SQLite skips FOR UPDATE — inspect generated SQL via mocked session instead.
-    """
+    """Mocked Postgres session emits FOR UPDATE on confirm"""
     statements: list[str] = []
 
     async def execute(statement: Any, *args: Any, **kwargs: Any) -> Any:
@@ -228,7 +220,7 @@ async def test_postgres_confirm_emits_select_for_update() -> None:
 
 
 async def test_sqlite_confirm_skips_for_update(session: AsyncSession) -> None:
-    """SQLite dialect must not get FOR UPDATE"""
+    """SQLite skips FOR UPDATE"""
     service = ReconciliationService(session)
 
     assert service._supports_row_locks() is False

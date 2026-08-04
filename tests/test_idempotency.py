@@ -113,7 +113,7 @@ def test_retry_replays_the_stored_response_without_rerunning() -> None:
 
 
 def test_in_progress_key_returns_409() -> None:
-    """A retry that arrives before the first call finishes must not run"""
+    """In-progress key returns 409"""
     redis = FakeRedis()
     client, calls = build_client(redis)
     body = b'{"name": "hotel"}'
@@ -142,7 +142,7 @@ def test_different_keys_run_separately() -> None:
 
 
 def test_same_key_with_a_different_body_is_not_replayed() -> None:
-    """The key is scoped by a body hash, so a reused key cannot cross wires"""
+    """Same key with a different body is not a replay"""
     redis = FakeRedis()
     client, calls = build_client(redis)
     headers = {IDEMPOTENCY_HEADER: "key-1"}
@@ -166,7 +166,7 @@ def test_request_without_a_key_is_untouched() -> None:
 
 
 def test_get_requests_are_never_cached() -> None:
-    """Only mutating methods need this; caching reads is the CDN's job"""
+    """GET requests skip the idempotency middleware"""
     redis = FakeRedis()
     client, calls = build_client(redis)
     headers = {IDEMPOTENCY_HEADER: "key-1"}
@@ -203,7 +203,7 @@ def test_disabled_middleware_is_a_passthrough() -> None:
 
 
 def test_corrupt_cache_is_deleted_and_reclaimed() -> None:
-    """Corrupt Redis values must not fall through without reclaiming"""
+    """Corrupt cache entries are deleted and reclaimed"""
     redis = FakeRedis()
     client, calls = build_client(redis)
     headers = {IDEMPOTENCY_HEADER: "key-corrupt"}
@@ -222,7 +222,7 @@ def test_corrupt_cache_is_deleted_and_reclaimed() -> None:
 
 
 def test_background_tasks_survive_idempotency_rebuild() -> None:
-    """Rebuilt responses must keep Starlette background work attached"""
+    """Response rebuild preserves BackgroundTasks"""
     from starlette.background import BackgroundTasks
 
     from reckonflow.api.middleware.idempotency import CapturedResponse, _rebuild

@@ -43,7 +43,7 @@ async def test_alternative_headers_are_mapped(session: AsyncSession) -> None:
 
 
 async def test_european_formats_are_understood(session: AsyncSession) -> None:
-    """1.234,56 on 18.09.2026 is a perfectly normal German statement line"""
+    """Parses European decimal and date formats"""
     csv = b'booking_date,amount,description\n18.09.2026,"1.234,56",HOTEL ADLON\n'
 
     result = await BankService(session).import_csv(csv)
@@ -58,7 +58,7 @@ async def test_european_formats_are_understood(session: AsyncSession) -> None:
 async def test_one_bad_row_does_not_lose_the_good_ones(
     session: AsyncSession,
 ) -> None:
-    """Aborting a 900-line import over one typo is the wrong failure mode"""
+    """Bad rows are reported; good rows still import"""
     csv = (
         b"booking_date,amount,description\n"
         b"2026-09-18,612.40,HOTEL ADLON\n"
@@ -74,7 +74,7 @@ async def test_one_bad_row_does_not_lose_the_good_ones(
 
 
 async def test_reupload_is_deduped_by_external_id(session: AsyncSession) -> None:
-    """Re-uploading yesterday's file is the most common operator mistake"""
+    """Duplicate external_id rows are skipped"""
     service = BankService(session)
     await service.import_csv(CLEAN_CSV)
 
@@ -101,7 +101,7 @@ async def test_duplicates_inside_one_file_are_caught(session: AsyncSession) -> N
 
 
 async def test_rows_without_external_id_are_all_kept(session: AsyncSession) -> None:
-    """Rows without external_id cannot be deduped — both identical coffees stay"""
+    """Rows without external_id are not deduped"""
     csv = (
         b"booking_date,amount,description\n"
         b"2026-09-18,3.50,COFFEE\n"

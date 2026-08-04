@@ -32,7 +32,7 @@ def test_rrf_sums_across_rankings() -> None:
 
 
 def test_rrf_rewards_agreement_between_signals() -> None:
-    """The candidate every signal likes must beat the one only some like"""
+    """Candidate present in more rankings ranks higher"""
     fused = reciprocal_rank_fusion(
         {"fuzzy": [1, 2, 3], "amount": [1, 3, 2], "embedding": [1, 2, 3]}, k=60
     )
@@ -41,10 +41,7 @@ def test_rrf_rewards_agreement_between_signals() -> None:
 
 
 def test_rrf_tolerates_a_missing_signal() -> None:
-    """A candidate absent from one ranking still scores from the others
-
-    This is the property that lets embeddings be optional
-    """
+    """Missing a ranking list only drops that term from the RRF sum"""
     fused = reciprocal_rank_fusion({"fuzzy": [1, 2], "embedding": [1]}, k=60)
 
     assert set(fused) == {1, 2}
@@ -61,7 +58,7 @@ def test_rrf_rejects_non_positive_k() -> None:
 
 
 def test_small_k_makes_the_top_rank_dominate() -> None:
-    """k=60 flattens how much first place dominates second"""
+    """Larger k reduces top-rank weight"""
     flat = reciprocal_rank_fusion({"a": [1, 2]}, k=60)
     sharp = reciprocal_rank_fusion({"a": [1, 2]}, k=1)
 
@@ -94,7 +91,7 @@ def test_cosine_similarity_basics() -> None:
 
 
 def test_amount_similarity_ignores_sign() -> None:
-    """A statement may show a payment negative while the expense is positive"""
+    """Amount score ignores payment sign"""
     assert amount_similarity(Decimal("100"), Decimal("-100")) == pytest.approx(1.0)
     assert amount_similarity(Decimal("100"), Decimal("95")) == pytest.approx(0.95)
     assert amount_similarity(Decimal("0"), Decimal("0")) == pytest.approx(1.0)

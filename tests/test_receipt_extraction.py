@@ -46,7 +46,7 @@ async def test_stub_reads_a_normal_receipt() -> None:
 
 
 async def test_stub_refuses_a_receipt_with_no_total() -> None:
-    """No total means nothing to reconcile — extraction should fail"""
+    """Missing total fails extraction"""
     with pytest.raises(ExtractionError):
         await StubReceiptExtractor().extract(
             raw_text="Hotel Adlon\nThank you", filename="broken.txt"
@@ -107,7 +107,7 @@ def test_extraction_schema_rejects_float_totals() -> None:
 
 
 def test_no_api_key_selects_the_stub(monkeypatch: pytest.MonkeyPatch) -> None:
-    """CI has no Groq key, so this is the path the whole suite runs on"""
+    """Empty GROQ_API_KEY selects the stub"""
     from reckonflow.core import config
 
     config.get_settings.cache_clear()
@@ -119,7 +119,7 @@ def test_no_api_key_selects_the_stub(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_only_throttling_is_retried() -> None:
-    """Retrying a 400 just burns free-tier quota on an identical failure"""
+    """Client errors are not retried"""
     assert _is_rate_limited(RuntimeError("429 Too Many Requests")) is True
     assert _is_rate_limited(RuntimeError("rate limit reached")) is True
     assert _is_rate_limited(ValueError("400 invalid request")) is False
