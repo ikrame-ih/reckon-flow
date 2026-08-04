@@ -92,9 +92,7 @@ class LedgerService:
                 )
 
             await self.get_account(account_id)
-            bucket = by_currency.setdefault(
-                currency, [Decimal("0"), Decimal("0")]
-            )
+            bucket = by_currency.setdefault(currency, [Decimal("0"), Decimal("0")])
             bucket[0] += debit
             bucket[1] += credit
             parsed.append((account_id, debit, credit, currency, memo_str))
@@ -102,8 +100,7 @@ class LedgerService:
         for currency, (total_debit, total_credit) in by_currency.items():
             if total_debit != total_credit:
                 raise UnbalancedLedgerError(
-                    f"Unbalanced {currency}: debit={total_debit} "
-                    f"credit={total_credit}"
+                    f"Unbalanced {currency}: debit={total_debit} credit={total_credit}"
                 )
 
         tx = LedgerTransaction(reference=reference, description=description)

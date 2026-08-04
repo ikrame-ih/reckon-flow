@@ -192,9 +192,7 @@ def test_receipt_upload_returns_202_and_polls(client: TestClient) -> None:
     assert expense.status_code == 201, expense.text
     expense_id = expense.json()["id"]
 
-    receipt_text = (
-        b"Taxi Berlin\nDate: 2026-09-15\nTotal: 34.50 EUR\nThank you\n"
-    )
+    receipt_text = b"Taxi Berlin\nDate: 2026-09-15\nTotal: 34.50 EUR\nThank you\n"
     uploaded = client.post(
         "/api/v1/receipts",
         data={"expense_id": str(expense_id)},

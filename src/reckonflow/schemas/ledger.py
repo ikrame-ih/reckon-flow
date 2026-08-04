@@ -83,8 +83,7 @@ class LedgerTransactionCreate(BaseModel):
         for currency, (total_debit, total_credit) in by_currency.items():
             if total_debit != total_credit:
                 raise ValueError(
-                    f"Unbalanced {currency}: debit={total_debit} "
-                    f"credit={total_credit}"
+                    f"Unbalanced {currency}: debit={total_debit} credit={total_credit}"
                 )
         return self
 
