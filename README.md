@@ -31,9 +31,11 @@ After [seed](#quick-start) (or on the live demo once seeded):
 
 1. `GET /api/v1/accounts` → `CASH`, `TRAVEL`
 2. `GET /api/v1/expenses` → note an expense `id`
-3. `POST /api/v1/reconciliation/expenses/{id}/suggest` → ranked bank candidates
+3. `GET /api/v1/reconciliation/expenses/{id}/suggestions` → ranked bank candidates
 
 Mutating calls on production should send `X-API-Key` when that env var is set.
+
+![Demo walkthrough](docs/assets/demo-walkthrough.gif)
 
 ![Swagger: reconciliation suggest](docs/assets/swagger-recon.png)
 
