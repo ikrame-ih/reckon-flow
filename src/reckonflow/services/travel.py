@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,6 +19,7 @@ from reckonflow.core.exceptions import (
     NotFoundError,
     ReckonFlowError,
 )
+from reckonflow.core.money import parse_money
 from reckonflow.models import Account, Approval, Expense, TravelRequest
 from reckonflow.models.travel import ApprovalStatus
 from reckonflow.services.ledger import LedgerService
@@ -166,11 +167,28 @@ class TravelService:
         return approval
 
     async def _post_payment_ledger(self, approval: Approval) -> None:
-        """Record the reimbursement in the double-entry ledger"""
+        """Record the reimbursement in the double-entry ledger
+
+        Prefer the sum of expenses on the trip (what was actually spent).
+        Fall back to the pre-approval estimate when no expenses exist yet.
+        """
         trip = await self.get_travel_request(approval.travel_request_id)
         cash = await self._account_by_code(_CASH_CODE)
         travel_acct = await self._account_by_code(_TRAVEL_CODE)
-        amount = str(trip.estimated_amount)
+
+        spent = (
+            await self._session.execute(
+                select(func.coalesce(func.sum(Expense.amount), 0)).where(
+                    Expense.travel_request_id == trip.id,
+                    Expense.currency == trip.currency,
+                )
+            )
+        ).scalar_one()
+        amount_dec = parse_money(spent or 0)
+        if amount_dec == 0:
+            amount_dec = trip.estimated_amount
+        amount = str(amount_dec)
+
         ledger = LedgerService(self._session)
         await ledger.create_balanced_transaction(
             reference=f"PAY-{approval.id}",

@@ -26,7 +26,7 @@ async def _request(service: TravelService) -> int:
 
 
 async def test_new_request_opens_a_pending_approval(session: AsyncSession) -> None:
-    """A request with no approval row would be invisible to the reviewer"""
+    """Creating a travel request also creates a pending approval"""
     service = TravelService(session)
     request_id = await _request(service)
 
@@ -41,8 +41,8 @@ async def test_full_happy_path_pending_to_approved_to_paid(
     from reckonflow.services.ledger import LedgerService
 
     ledger = LedgerService(session)
-    await ledger.create_account(code="CASH", name="Cash")
-    await ledger.create_account(code="TRAVEL", name="Travel")
+    cash = await ledger.create_account(code="CASH", name="Cash")
+    travel = await ledger.create_account(code="TRAVEL", name="Travel")
 
     service = TravelService(session)
     request = await service.get_travel_request(await _request(service))
@@ -55,6 +55,14 @@ async def test_full_happy_path_pending_to_approved_to_paid(
     assert approved.status == ApprovalStatus.APPROVED
     assert approved.reviewer == "finance.lead"
 
+    await service.create_expense(
+        travel_request_id=request.id,
+        vendor="Hotel Adlon",
+        description="3 nights",
+        amount=Decimal("612.40"),
+        expense_date=date(2026, 9, 17),
+    )
+
     paid = await service.transition_approval(approval_id, target=ApprovalStatus.PAID)
     assert paid.status == ApprovalStatus.PAID
 
@@ -64,10 +72,12 @@ async def test_full_happy_path_pending_to_approved_to_paid(
 
     count = await session.scalar(select(func.count()).select_from(LedgerTransaction))
     assert count == 1
+    assert await ledger.account_balance(travel.id) == Decimal("612.40")
+    assert await ledger.account_balance(cash.id) == Decimal("-612.40")
 
 
 async def test_pending_cannot_jump_straight_to_paid(session: AsyncSession) -> None:
-    """Pending → paid is illegal; approval must happen first"""
+    """Pending cannot jump straight to paid"""
     service = TravelService(session)
     request = await service.get_travel_request(await _request(service))
     assert request.approval is not None
@@ -175,7 +185,7 @@ async def test_expense_on_an_unknown_trip_is_rejected(session: AsyncSession) -> 
 
 
 async def test_postgres_transition_emits_select_for_update() -> None:
-    """PostgreSQL approval transitions emit SELECT ... FOR UPDATE"""
+    """Postgres path emits FOR UPDATE on approval rows"""
     from types import SimpleNamespace
     from typing import Any
     from unittest.mock import AsyncMock, MagicMock
