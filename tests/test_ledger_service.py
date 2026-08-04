@@ -122,7 +122,7 @@ async def test_duplicate_account_code_conflicts(session: AsyncSession) -> None:
 async def test_balance_is_aggregated_over_many_transactions(
     session: AsyncSession,
 ) -> None:
-    """Balance is always aggregated — never stored"""
+    """account_balance is SUM(debit)-SUM(credit)"""
     service = LedgerService(session)
     expense_id, bank_id = await _two_accounts(service)
 
@@ -140,7 +140,7 @@ async def test_balance_is_aggregated_over_many_transactions(
 
 
 def test_schema_rejects_unbalanced_payload_before_the_database() -> None:
-    """The service is the guard, but the client deserves a 422, not a 500"""
+    """Schema rejects unbalanced payloads before the service runs"""
     with pytest.raises(ValidationError):
         LedgerTransactionCreate.model_validate(
             {
@@ -165,4 +165,30 @@ def test_schema_rejects_float_amounts() -> None:
                     {"account_id": 2, "credit": 10.0},
                 ],
             }
+        )
+
+
+async def test_mixed_currency_equal_amounts_still_unbalanced(
+    session: AsyncSession,
+) -> None:
+    """100 EUR debit and 100 USD credit must not cancel each other"""
+    service = LedgerService(session)
+    expense_id, bank_id = await _two_accounts(service)
+
+    with pytest.raises(UnbalancedLedgerError, match="EUR"):
+        await service.create_balanced_transaction(
+            reference="TRV-FX-1",
+            description="Looks balanced until you look at currency",
+            lines=[
+                {
+                    "account_id": expense_id,
+                    "debit": "100.00",
+                    "currency": "EUR",
+                },
+                {
+                    "account_id": bank_id,
+                    "credit": "100.00",
+                    "currency": "USD",
+                },
+            ],
         )

@@ -72,13 +72,20 @@ class LedgerTransactionCreate(BaseModel):
 
     @model_validator(mode="after")
     def check_balanced(self) -> LedgerTransactionCreate:
-        """Enforce sum(debit) == sum(credit) before the request reaches the DB"""
-        total_debit = sum((Decimal(line.debit) for line in self.lines), Decimal("0"))
-        total_credit = sum((Decimal(line.credit) for line in self.lines), Decimal("0"))
-        if total_debit != total_credit:
-            raise ValueError(
-                f"Unbalanced transaction: debit={total_debit} credit={total_credit}"
+        """Enforce debit == credit per currency before the request reaches the DB"""
+        by_currency: dict[str, list[Decimal]] = {}
+        for line in self.lines:
+            bucket = by_currency.setdefault(
+                line.currency.upper(), [Decimal("0"), Decimal("0")]
             )
+            bucket[0] += Decimal(line.debit)
+            bucket[1] += Decimal(line.credit)
+        for currency, (total_debit, total_credit) in by_currency.items():
+            if total_debit != total_credit:
+                raise ValueError(
+                    f"Unbalanced {currency}: debit={total_debit} "
+                    f"credit={total_credit}"
+                )
         return self
 
 

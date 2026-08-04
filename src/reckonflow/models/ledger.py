@@ -41,7 +41,6 @@ class LedgerTransaction(Base):
 
     entries: Mapped[list[LedgerEntry]] = relationship(
         back_populates="transaction",
-        cascade="all, delete-orphan",
     )
 
 
@@ -60,7 +59,7 @@ class LedgerEntry(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     transaction_id: Mapped[int] = mapped_column(
-        ForeignKey("ledger_transactions.id", ondelete="CASCADE"),
+        ForeignKey("ledger_transactions.id", ondelete="RESTRICT"),
         index=True,
     )
     account_id: Mapped[int] = mapped_column(

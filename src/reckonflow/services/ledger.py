@@ -75,8 +75,8 @@ class LedgerService:
             raise UnbalancedLedgerError("Need at least two ledger lines")
 
         parsed: list[tuple[int, Decimal, Decimal, str, str | None]] = []
-        total_debit = Decimal("0")
-        total_credit = Decimal("0")
+        # Balance must hold per currency — 100 EUR debit ≠ 100 USD credit
+        by_currency: dict[str, list[Decimal]] = {}
 
         for raw in lines:
             account_id = int(raw["account_id"])
@@ -92,14 +92,19 @@ class LedgerService:
                 )
 
             await self.get_account(account_id)
-            total_debit += debit
-            total_credit += credit
+            bucket = by_currency.setdefault(
+                currency, [Decimal("0"), Decimal("0")]
+            )
+            bucket[0] += debit
+            bucket[1] += credit
             parsed.append((account_id, debit, credit, currency, memo_str))
 
-        if total_debit != total_credit:
-            raise UnbalancedLedgerError(
-                f"Unbalanced transaction: debit={total_debit} credit={total_credit}"
-            )
+        for currency, (total_debit, total_credit) in by_currency.items():
+            if total_debit != total_credit:
+                raise UnbalancedLedgerError(
+                    f"Unbalanced {currency}: debit={total_debit} "
+                    f"credit={total_credit}"
+                )
 
         tx = LedgerTransaction(reference=reference, description=description)
         self._session.add(tx)
