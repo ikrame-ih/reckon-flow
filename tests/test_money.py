@@ -8,7 +8,7 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from reckonflow.core.money import money_to_str, parse_money
-from reckonflow.schemas.common import MoneyStr
+from reckonflow.schemas.common import MoneyStr, PositiveMoneyStr
 
 
 def test_parse_money_from_string_is_exact() -> None:
@@ -51,3 +51,27 @@ def test_money_str_schema_rejects_float_and_text() -> None:
         _Payload.model_validate({"amount": 10.5})
     with pytest.raises(ValidationError):
         _Payload.model_validate({"amount": "ten"})
+
+
+def test_money_str_rejects_nan_and_infinity() -> None:
+    with pytest.raises(ValidationError):
+        _Payload.model_validate({"amount": "NaN"})
+    with pytest.raises(ValidationError):
+        _Payload.model_validate({"amount": "Infinity"})
+
+
+def test_money_str_rejects_excess_decimals() -> None:
+    with pytest.raises(ValidationError):
+        _Payload.model_validate({"amount": "1.12345"})
+
+
+class _PositivePayload(BaseModel):
+    amount: PositiveMoneyStr
+
+
+def test_positive_money_rejects_zero_and_negative() -> None:
+    with pytest.raises(ValidationError):
+        _PositivePayload.model_validate({"amount": "0"})
+    with pytest.raises(ValidationError):
+        _PositivePayload.model_validate({"amount": "-1.00"})
+    assert _PositivePayload.model_validate({"amount": "0.01"}).amount == "0.01"

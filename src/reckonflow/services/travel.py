@@ -15,6 +15,7 @@ from sqlalchemy.orm import selectinload
 
 from reckonflow.core.embeddings import text_embedding
 from reckonflow.core.exceptions import (
+    ConflictError,
     InvalidStateTransitionError,
     NotFoundError,
     ReckonFlowError,
@@ -180,7 +181,6 @@ class TravelService:
             await self._session.execute(
                 select(func.coalesce(func.sum(Expense.amount), 0)).where(
                     Expense.travel_request_id == trip.id,
-                    Expense.currency == trip.currency,
                 )
             )
         ).scalar_one()
@@ -253,6 +253,11 @@ class TravelService:
                 raise InvalidStateTransitionError(
                     f"Cannot attach expense to travel request {travel_request_id} "
                     f"while approval is {status.value}; approve the trip first"
+                )
+            if currency.upper() != trip.currency.upper():
+                raise ConflictError(
+                    f"Expense currency {currency.upper()!r} must match trip "
+                    f"currency {trip.currency!r} (single-currency trips only)"
                 )
 
         text = f"{vendor} {description}".strip()

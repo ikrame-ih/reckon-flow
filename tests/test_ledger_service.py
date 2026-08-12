@@ -171,11 +171,11 @@ def test_schema_rejects_float_amounts() -> None:
 async def test_mixed_currency_equal_amounts_still_unbalanced(
     session: AsyncSession,
 ) -> None:
-    """100 EUR debit and 100 USD credit must not cancel each other"""
+    """Entry currency must match the account; FX is not supported"""
     service = LedgerService(session)
     expense_id, bank_id = await _two_accounts(service)
 
-    with pytest.raises(UnbalancedLedgerError, match="EUR"):
+    with pytest.raises(UnbalancedLedgerError, match="must match account"):
         await service.create_balanced_transaction(
             reference="TRV-FX-1",
             description="Looks balanced until you look at currency",

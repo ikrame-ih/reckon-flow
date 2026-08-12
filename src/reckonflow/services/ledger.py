@@ -91,7 +91,13 @@ class LedgerService:
                     "Each line must be either a debit or a credit, not both or neither"
                 )
 
-            await self.get_account(account_id)
+            account = await self.get_account(account_id)
+            if currency != account.currency.upper():
+                raise UnbalancedLedgerError(
+                    f"Entry currency {currency!r} must match account "
+                    f"{account.code!r} currency {account.currency!r} "
+                    "(single-currency accounts only)"
+                )
             bucket = by_currency.setdefault(currency, [Decimal("0"), Decimal("0")])
             bucket[0] += debit
             bucket[1] += credit
@@ -136,12 +142,15 @@ class LedgerService:
         return tx
 
     async def account_balance(self, account_id: int) -> Decimal:
-        """Balance is SUM(debit) - SUM(credit) — never a stored column"""
-        await self.get_account(account_id)
+        """Balance is SUM(debit) - SUM(credit) in the account's currency only"""
+        account = await self.get_account(account_id)
         stmt = select(
             func.coalesce(func.sum(LedgerEntry.debit), 0),
             func.coalesce(func.sum(LedgerEntry.credit), 0),
-        ).where(LedgerEntry.account_id == account_id)
+        ).where(
+            LedgerEntry.account_id == account_id,
+            LedgerEntry.currency == account.currency,
+        )
         result = await self._session.execute(stmt)
         debit_sum, credit_sum = result.one()
         return parse_money(debit_sum or 0) - parse_money(credit_sum or 0)

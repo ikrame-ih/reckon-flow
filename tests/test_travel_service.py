@@ -8,7 +8,11 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from reckonflow.core.exceptions import InvalidStateTransitionError, NotFoundError
+from reckonflow.core.exceptions import (
+    ConflictError,
+    InvalidStateTransitionError,
+    NotFoundError,
+)
 from reckonflow.models.travel import ApprovalStatus
 from reckonflow.services.travel import TravelService
 
@@ -167,6 +171,26 @@ async def test_expense_on_pending_trip_is_rejected(session: AsyncSession) -> Non
             vendor="Hotel Adlon",
             description="3 nights, Berlin",
             amount=Decimal("612.40"),
+            expense_date=date(2026, 9, 17),
+        )
+
+
+async def test_expense_currency_must_match_trip(session: AsyncSession) -> None:
+    service = TravelService(session)
+    request_id = await _request(service)
+    request = await service.get_travel_request(request_id)
+    assert request.approval is not None
+    await service.transition_approval(
+        request.approval.id, target=ApprovalStatus.APPROVED, reviewer="boss"
+    )
+
+    with pytest.raises(ConflictError, match="single-currency"):
+        await service.create_expense(
+            travel_request_id=request_id,
+            vendor="Hotel Adlon",
+            description="3 nights, Berlin",
+            amount=Decimal("612.40"),
+            currency="USD",
             expense_date=date(2026, 9, 17),
         )
 

@@ -14,6 +14,8 @@ from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
 
 from reckonflow.core.money import money_to_str
 
+_MAX_MONEY_DECIMALS = 4
+
 
 def _coerce_money(value: Any) -> Any:
     """Coerce Decimal/int/str to an exact string for Pydantic
@@ -35,9 +37,23 @@ def _coerce_money(value: Any) -> Any:
 def _must_be_decimal(value: str) -> str:
     """Fail fast on strings Decimal cannot parse, before they reach the DB"""
     try:
-        Decimal(value)
+        amount = Decimal(value)
     except (InvalidOperation, ValueError) as exc:
         raise ValueError(f"{value!r} is not a valid decimal amount") from exc
+    if not amount.is_finite():
+        raise ValueError(f"{value!r} is not a finite decimal amount")
+    exponent = amount.as_tuple().exponent
+    if isinstance(exponent, int) and exponent < -_MAX_MONEY_DECIMALS:
+        raise ValueError(
+            f"{value!r} has more than {_MAX_MONEY_DECIMALS} decimal places"
+        )
+    return money_to_str(amount)
+
+
+def _must_be_positive(value: str) -> str:
+    amount = Decimal(value)
+    if amount <= 0:
+        raise ValueError("Amount must be greater than zero")
     return value
 
 
@@ -45,6 +61,14 @@ MoneyStr = Annotated[
     str,
     BeforeValidator(_coerce_money),
     AfterValidator(_must_be_decimal),
+    Field(examples=["120.50"]),
+]
+
+PositiveMoneyStr = Annotated[
+    str,
+    BeforeValidator(_coerce_money),
+    AfterValidator(_must_be_decimal),
+    AfterValidator(_must_be_positive),
     Field(examples=["120.50"]),
 ]
 

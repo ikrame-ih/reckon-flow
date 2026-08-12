@@ -125,3 +125,87 @@ async def test_for_update_blocks_concurrent_reader(pg_engine: AsyncEngine) -> No
         service = ReconciliationService(again)
         with pytest.raises(ConflictError):
             await service.confirm_match(expense_id, bank_id)
+
+
+@pytest.mark.asyncio
+async def test_ledger_entries_reject_update_and_delete(
+    pg_session: AsyncSession,
+) -> None:
+    from reckonflow.models import Account, LedgerEntry, LedgerTransaction
+
+    cash = Account(code="CASH", name="Cash", currency="EUR")
+    travel = Account(code="TRAVEL", name="Travel", currency="EUR")
+    pg_session.add_all([cash, travel])
+    await pg_session.flush()
+
+    tx = LedgerTransaction(reference="IMM-1", description="seed")
+    pg_session.add(tx)
+    await pg_session.flush()
+    debit = LedgerEntry(
+        transaction_id=tx.id,
+        account_id=travel.id,
+        debit=Decimal("10.00"),
+        credit=Decimal("0"),
+        currency="EUR",
+    )
+    credit = LedgerEntry(
+        transaction_id=tx.id,
+        account_id=cash.id,
+        debit=Decimal("0"),
+        credit=Decimal("10.00"),
+        currency="EUR",
+    )
+    pg_session.add_all([debit, credit])
+    await pg_session.flush()
+    await pg_session.commit()
+
+    with pytest.raises(Exception, match="append-only"):
+        await pg_session.execute(
+            text("UPDATE ledger_entries SET memo = 'x' WHERE id = :id"),
+            {"id": debit.id},
+        )
+        await pg_session.commit()
+
+    await pg_session.rollback()
+
+    with pytest.raises(Exception, match="append-only"):
+        await pg_session.execute(
+            text("DELETE FROM ledger_entries WHERE id = :id"),
+            {"id": debit.id},
+        )
+        await pg_session.commit()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_csv_import_dedupes_external_id(
+    pg_engine: AsyncEngine,
+) -> None:
+    """Two sessions importing the same external_id must not 500"""
+    from reckonflow.services.bank import BankService
+
+    maker = async_sessionmaker(pg_engine, class_=AsyncSession, expire_on_commit=False)
+    csv_body = (
+        b"booking_date,amount,currency,description,external_id\n"
+        b"2026-09-16,-120.00,EUR,HOTEL RACE,EXT-RACE-1\n"
+    )
+
+    async def _import_once() -> int:
+        async with maker() as session:
+            service = BankService(session)
+            result = await service.import_csv(csv_body)
+            await session.commit()
+            return result.inserted
+
+    first, second = await asyncio.gather(_import_once(), _import_once())
+    assert first + second == 1
+
+    async with maker() as session:
+        count = (
+            await session.execute(
+                text(
+                    "SELECT count(*) FROM bank_transactions "
+                    "WHERE external_id = 'EXT-RACE-1'"
+                )
+            )
+        ).scalar_one()
+    assert count == 1

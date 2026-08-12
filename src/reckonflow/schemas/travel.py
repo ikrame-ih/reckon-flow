@@ -12,7 +12,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from reckonflow.models.travel import ApprovalStatus
-from reckonflow.schemas.common import CurrencyCode, MoneyStr
+from reckonflow.schemas.common import CurrencyCode, PositiveMoneyStr
 
 
 class TravelRequestCreate(BaseModel):
@@ -39,7 +39,7 @@ class TravelRequestCreate(BaseModel):
     purpose: str = Field(..., min_length=1)
     start_date: date
     end_date: date
-    estimated_amount: MoneyStr = Field(..., examples=["980.00"])
+    estimated_amount: PositiveMoneyStr = Field(..., examples=["980.00"])
     currency: CurrencyCode = "EUR"
 
     @model_validator(mode="after")
@@ -74,7 +74,7 @@ class TravelRequestRead(BaseModel):
     purpose: str
     start_date: date
     end_date: date
-    estimated_amount: MoneyStr
+    estimated_amount: PositiveMoneyStr
     currency: str
     created_at: datetime
     approval: ApprovalRead | None = None
@@ -121,7 +121,7 @@ class ExpenseCreate(BaseModel):
     travel_request_id: int | None = None
     vendor: str = Field(..., min_length=1, max_length=160)
     description: str = Field(..., min_length=1)
-    amount: MoneyStr = Field(..., examples=["612.40"])
+    amount: PositiveMoneyStr = Field(..., examples=["612.40"])
     currency: CurrencyCode = "EUR"
     expense_date: date
 
@@ -135,7 +135,7 @@ class ExpenseRead(BaseModel):
     travel_request_id: int | None = None
     vendor: str
     description: str
-    amount: MoneyStr
+    amount: PositiveMoneyStr
     currency: str
     expense_date: date
     match_status: str
