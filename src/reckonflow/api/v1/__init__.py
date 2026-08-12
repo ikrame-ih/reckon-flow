@@ -1,4 +1,8 @@
-"""Aggregate API v1 routers — main.py mounts this single object."""
+"""Aggregate API v1 routers — main.py mounts this single object.
+
+Health/readiness stay outside this router so they remain public when
+API_KEY is set.
+"""
 
 from fastapi import APIRouter, Depends
 
@@ -8,7 +12,6 @@ from reckonflow.api.v1 import (
     approvals,
     bank,
     expenses,
-    health,
     ledger,
     receipts,
     reconciliation,
@@ -16,7 +19,6 @@ from reckonflow.api.v1 import (
 )
 
 api_router = APIRouter(dependencies=[Depends(require_api_key)])
-api_router.include_router(health.router)
 api_router.include_router(accounts.router)
 api_router.include_router(ledger.router)
 api_router.include_router(travel.router)

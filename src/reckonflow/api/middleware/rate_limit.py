@@ -25,9 +25,12 @@ logger = get_logger(__name__)
 # Skip probes and metrics — they are scraped frequently
 _EXEMPT_PREFIXES = (
     "/health",
+    "/ready",
     "/api/v1/health",
+    "/api/v1/ready",
     "/metrics",
     "/docs",
+    "/swagger",
     "/redoc",
     "/openapi",
 )

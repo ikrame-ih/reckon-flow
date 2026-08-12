@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class HealthResponse(BaseModel):
-    status: str = Field(examples=["ok", "degraded"])
+    status: str = Field(examples=["ok", "degraded", "unavailable"])
     app: str
     version: str
     database: bool | None = Field(

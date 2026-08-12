@@ -6,10 +6,10 @@ Headless FastAPI backend for corporate travel: pre-approvals, an immutable
 double-entry ledger, structured receipt extraction, and hybrid bank
 reconciliation.
 
-**[Live API (Swagger)](https://reckon-flow.onrender.com/docs)** ·
+**[Live API docs](https://reckon-flow.onrender.com/docs)** ·
 **[GitHub](https://github.com/ikrame-ih/reckon-flow)**
 
-There is no product UI — Swagger is the interactive demo. Free Render
+There is no product UI — `/docs` (Scalar) is the interactive demo. Free Render
 instances may take ~50s on the first request after sleep.
 
 </div>

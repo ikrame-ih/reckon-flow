@@ -9,7 +9,7 @@ from __future__ import annotations
 import secrets
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from reckonflow.core.config import get_settings
@@ -21,8 +21,6 @@ from reckonflow.services.reconciliation import ReconciliationService
 from reckonflow.services.travel import TravelService
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
-
-MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 
 def _reject_bad_api_key(x_api_key: str | None) -> None:
@@ -38,16 +36,14 @@ def _reject_bad_api_key(x_api_key: str | None) -> None:
 
 
 async def require_api_key(
-    request: Request,
     x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
 ) -> None:
-    """Gate mutating requests when API_KEY is configured
+    """Gate all finance routes when API_KEY is configured
 
-    GET/HEAD/OPTIONS stay open so health and list endpoints remain easy to probe.
-    Empty API_KEY disables the gate (local/CI). Production must set API_KEY.
+    Empty API_KEY disables the gate (local/CI). Production must set API_KEY —
+    create_app refuses to boot otherwise. Liveness/readiness and interactive
+    docs stay outside this dependency.
     """
-    if request.method not in MUTATING_METHODS:
-        return
     _reject_bad_api_key(x_api_key)
 
 

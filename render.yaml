@@ -10,7 +10,7 @@ services:
     branch: main
     buildCommand: pip install uv && uv sync --frozen
     startCommand: bash scripts/render_start.sh
-    healthCheckPath: /health
+    healthCheckPath: /ready
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.8"
@@ -27,8 +27,9 @@ services:
       # Secrets from the dashboard:
       # DATABASE_URL — Neon (postgresql+asyncpg://…?ssl=require)
       # REDIS_URL    — Upstash (rediss://…, note the double s)
-      # API_KEY      — required on mutating routes in production
+      # API_KEY      — required (app refuses to boot in production without it)
       # GROQ_API_KEY — optional
+      # GROQ_MODEL   — optional (default openai/gpt-oss-20b)
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL

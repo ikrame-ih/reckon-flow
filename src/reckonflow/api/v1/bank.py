@@ -20,12 +20,8 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
     status_code=status.HTTP_201_CREATED,
     summary="Upload a bank statement CSV",
     description=(
-        "Accepts a CSV with `booking_date`, `amount`, `currency`, "
-        "`description`, and optional `external_id` (common header spellings "
-        "are mapped automatically). Every row is validated with Pydantic; bad "
-        "rows are reported in `errors` while the good ones still import. Rows "
-        "whose `external_id` already exists are counted as duplicates and "
-        "skipped, so re-uploading yesterday's file is harmless."
+        "CSV with booking_date, amount, currency, description, optional "
+        "external_id. Bad rows are reported; duplicate external_ids are skipped."
     ),
     responses={413: {"model": ErrorResponse, "description": "File too large"}},
 )

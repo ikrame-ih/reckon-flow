@@ -19,7 +19,7 @@ only for local exploration.
 
 ## Demo path (after seed)
 
-1. Open [Swagger](https://reckon-flow.onrender.com/docs)
+1. Open [API docs](https://reckon-flow.onrender.com/docs)
 2. `GET /api/v1/accounts` — CASH and TRAVEL
 3. `GET /api/v1/expenses` then `GET /api/v1/reconciliation/expenses/{id}/suggestions`
 

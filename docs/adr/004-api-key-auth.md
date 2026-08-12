@@ -1,22 +1,31 @@
 # ADR 004: API-key auth scope
 
-- **Status:** Accepted
+- **Status:** Accepted (amended)
 - **Date:** 2026-08-04
+- **Amended:** 2026-08-12
 - **Phase:** 6
 
 ## Context
 
-ReckonFlow exposes mutating finance endpoints (approve, pay, post ledger,
-import bank CSV). An unauthenticated public URL is fine for a short-lived
-demo, but any finance API needs an access-control answer before it faces
-the internet.
+ReckonFlow exposes finance endpoints (travel, expenses, bank lines, receipts,
+reconciliation, ledger). An unauthenticated public URL is fine for a short-lived
+local demo, but any finance API needs an access-control answer before it faces
+the internet — including **reads** of employee names and spend data.
 
 ## Decision
 
-Require an `X-API-Key` header on **mutating** methods (`POST`/`PUT`/`PATCH`/
-`DELETE`) when the `API_KEY` environment variable is set. Reads and
-`GET /health` stay open for probes and Swagger exploration. `GET /metrics`
-also requires the key when configured — scrape endpoints should not be public.
+Require an `X-API-Key` header on **all** `/api/v1` finance routes (GET and
+mutating methods) when the `API_KEY` environment variable is set.
+
+Public without a key:
+
+- `/health` (liveness) and `/ready` (readiness)
+- Interactive docs (`/docs`, `/swagger`, `/redoc`) and `/openapi.json`
+
+`GET /metrics` also requires the key when configured.
+
+Additional production rule: if `APP_ENV=production` and `API_KEY` is empty,
+the process **refuses to start**.
 
 - Empty `API_KEY` disables the gate (local development and CI).
 - Keys are compared with `secrets.compare_digest` to avoid timing leaks.
@@ -33,6 +42,6 @@ also requires the key when configured — scrape endpoints should not be public.
 
 ## Consequences
 
-- Production deploys must set `API_KEY` or the surface stays open
-- OpenAPI clients need to send the header on writes
+- Production deploys must set `API_KEY` or the app will not boot
+- OpenAPI clients need to send the header on finance calls
 - This is a deliberate scope cut, not a claim of production-grade IAM

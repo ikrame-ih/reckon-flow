@@ -39,7 +39,7 @@ LLM cannot take actions — only fill structured fields.
 | **Receipts** | Upload → **202** + background extract (Groq or offline stub) |
 | **Bank import** | CSV ingest with `external_id` dedup |
 | **Reconciliation** | SQL prefilter → RapidFuzz → embeddings → RRF (`k=60`) |
-| **Ops** | `Idempotency-Key`, `X-API-Key` on writes, request IDs, `/metrics`, deep `/health` |
+| **Ops** | `Idempotency-Key`, `X-API-Key` on finance routes, request IDs, `/metrics`, `/health` + `/ready` |
 
 Interactive docs: **Scalar** at `/docs` · classic Swagger at `/swagger` · ReDoc at `/redoc`.
 
@@ -53,7 +53,8 @@ run the quick start locally):
 3. `GET /api/v1/reconciliation/expenses/{id}/suggestions` → ranked bank candidates
 4. Optional: create a trip → approve → add expense → upload bank CSV → confirm match
 
-Mutating calls on production need `X-API-Key` when that env var is set.
+Finance routes on production need `X-API-Key` when that env var is set
+(reads and writes). `/health`, `/ready`, and docs stay public.
 
 ## Architecture (short)
 
@@ -132,8 +133,9 @@ Copy `.env.example` → `.env`. Never commit secrets.
 | --- | --- |
 | `DATABASE_URL` | Postgres (`postgresql+asyncpg://…`) |
 | `REDIS_URL` | Upstash / Redis (`rediss://…` for TLS) |
-| `API_KEY` | Gate mutating routes + `/metrics` (empty = open, local/CI) |
+| `API_KEY` | Gate all `/api/v1` finance routes + `/metrics` (empty = open, local/CI; required in production) |
 | `GROQ_API_KEY` | Receipt LLM; empty → deterministic stub |
+| `GROQ_MODEL` | Groq model id (default `openai/gpt-oss-20b`) |
 | `REDIS_KEY_PREFIX` | Namespace when sharing a Redis DB |
 | `RATE_LIMIT_PER_MINUTE` | In-process sliding window |
 | `METRICS_ENABLED` | Prometheus `/metrics` |
