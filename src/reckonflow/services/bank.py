@@ -11,7 +11,8 @@ import csv
 import io
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from reckonflow.core.embeddings import text_embedding
@@ -54,10 +55,11 @@ class BankService:
         """Parse, validate, and bulk-insert a CSV statement
 
         Dedupe on external_id when present — re-uploading yesterday's file is
-        the most common operator mistake.
+        the most common operator mistake. On PostgreSQL, INSERT … ON CONFLICT
+        DO NOTHING closes the check-then-insert race.
         """
-        text = content.decode("utf-8-sig", errors="replace")
-        reader = csv.DictReader(io.StringIO(text))
+        text_body = content.decode("utf-8-sig", errors="replace")
+        reader = csv.DictReader(io.StringIO(text_body))
         if reader.fieldnames is None:
             no_header = BankImportError(line_number=0, reason="The file has no header")
             return BankImportResult(
@@ -81,10 +83,73 @@ class BankService:
             except Exception as exc:
                 errors.append(BankImportError(line_number=line_number, reason=str(exc)))
 
+        if self._is_postgres():
+            inserted, skipped = await self._insert_postgres(parsed)
+        else:
+            inserted, skipped = await self._insert_sqlite_safe(parsed)
+
+        return BankImportResult(
+            received_rows=received,
+            inserted=inserted,
+            skipped_duplicates=skipped,
+            errors=errors,
+        )
+
+    def _is_postgres(self) -> bool:
+        try:
+            return self._session.get_bind().dialect.name == "postgresql"
+        except Exception:
+            return False
+
+    async def _insert_postgres(self, parsed: list[BankCsvRow]) -> tuple[int, int]:
+        """Race-safe insert via ON CONFLICT DO NOTHING on external_id"""
+        inserted = 0
+        skipped = 0
+        seen_in_file: set[str] = set()
+
+        for row in parsed:
+            key = row.external_id
+            if key and key in seen_in_file:
+                skipped += 1
+                continue
+            if key:
+                seen_in_file.add(key)
+
+            values = {
+                "booking_date": row.booking_date,
+                "amount": Decimal(row.amount),
+                "currency": row.currency,
+                "description": row.description,
+                "external_id": row.external_id,
+                "embedding": text_embedding(row.description),
+            }
+            if key:
+                stmt = (
+                    pg_insert(BankTransaction)
+                    .values(**values)
+                    .on_conflict_do_nothing(
+                        index_elements=["external_id"],
+                        index_where=text("external_id IS NOT NULL"),
+                    )
+                    .returning(BankTransaction.id)
+                )
+                result = await self._session.execute(stmt)
+                if result.scalar_one_or_none() is None:
+                    skipped += 1
+                else:
+                    inserted += 1
+            else:
+                self._session.add(BankTransaction(**values))
+                inserted += 1
+
+        await self._session.flush()
+        return inserted, skipped
+
+    async def _insert_sqlite_safe(self, parsed: list[BankCsvRow]) -> tuple[int, int]:
+        """Pre-check path for SQLite unit tests (no partial unique ON CONFLICT)"""
         existing_ids = await self._existing_external_ids(
             [row.external_id for row in parsed if row.external_id]
         )
-
         inserted = 0
         skipped = 0
         seen_in_file: set[str] = set()
@@ -108,12 +173,7 @@ class BankService:
             inserted += 1
 
         await self._session.flush()
-        return BankImportResult(
-            received_rows=received,
-            inserted=inserted,
-            skipped_duplicates=skipped,
-            errors=errors,
-        )
+        return inserted, skipped
 
     async def _existing_external_ids(self, candidates: list[str]) -> set[str]:
         """Load existing external ids in one query before deduping"""
