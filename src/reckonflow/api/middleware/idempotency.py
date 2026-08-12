@@ -6,9 +6,13 @@ response, so the client supplies a key and the server guarantees the same key
 yields the same effect and body.
 
 Per mutating request with the header:
-1. SET key <in-progress> NX EX ttl — atomic claim
+1. SET key <in-progress + fingerprint> NX EX ttl — atomic claim
 2. On success, run the route and overwrite with captured status/headers/body
-3. On failure: in-progress → 409; finished → replay stored response verbatim
+3. On failure: in-progress → 409; finished + same body → replay; different body → 409
+
+The Redis key is scoped by method + path + Idempotency-Key only. Body hash is
+stored as a fingerprint so reusing a key with a different payload is a conflict,
+not a second execution.
 
 Fail-open when Redis is unreachable — a cache outage should degrade the retry
 guarantee, not take the API down.
@@ -20,7 +24,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Awaitable, Callable
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from redis.asyncio import Redis
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -35,29 +39,25 @@ logger = get_logger(__name__)
 IDEMPOTENCY_HEADER = "Idempotency-Key"
 REPLAY_HEADER = "Idempotency-Replayed"
 MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
-IN_PROGRESS = "__in_progress__"
+STATE_IN_PROGRESS = "in_progress"
 
 # Transport headers — not part of response meaning; copying them corrupts replay
 _SKIPPED_HEADERS = frozenset({"content-length", "transfer-encoding", "connection"})
 
 
+def body_fingerprint(body: bytes) -> str:
+    """Stable hash of the raw request body for mismatch detection"""
+    return hashlib.sha256(body).hexdigest()
+
+
 def build_cache_key(
     request: Request,
     idempotency_key: str,
-    body: bytes,
     *,
     prefix: str = "reckonflow:",
 ) -> str:
-    """Scope cache key by prefix, method, path, and body hash
-
-    Prefix avoids collisions when sharing one Redis instance. Scoping by route
-    stops one key from replaying an unrelated endpoint's response.
-    """
-    digest = hashlib.sha256(body).hexdigest()[:16]
-    return (
-        f"{prefix}idempotency:{request.method}:{request.url.path}:"
-        f"{idempotency_key}:{digest}"
-    )
+    """Scope cache key by prefix, method, path, and client key (not body)"""
+    return f"{prefix}idempotency:{request.method}:{request.url.path}:{idempotency_key}"
 
 
 class IdempotencyMiddleware(BaseHTTPMiddleware):
@@ -89,15 +89,16 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
-        # Read body here for hashing; Starlette caches it for downstream routes
         body = await request.body()
-        cache_key = build_cache_key(
-            request, idempotency_key, body, prefix=self._key_prefix
+        fingerprint = body_fingerprint(body)
+        cache_key = build_cache_key(request, idempotency_key, prefix=self._key_prefix)
+        claim_payload = json.dumps(
+            {"state": STATE_IN_PROGRESS, "fingerprint": fingerprint}
         )
 
         try:
             redis = self._redis_factory()
-            claimed = await redis.set(cache_key, IN_PROGRESS, nx=True, ex=self._ttl)
+            claimed = await redis.set(cache_key, claim_payload, nx=True, ex=self._ttl)
         except Exception as exc:
             logger.warning(
                 "idempotency.redis_unavailable", error=str(exc), path=request.url.path
@@ -105,52 +106,44 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         if not claimed:
-            replayed = await self._replay(redis, cache_key)
-            if replayed is not None:
-                return replayed
-            # Claim lost (expiry) or corrupt entry — re-claim before running.
-            # Never fall through while another caller may still own the key.
+            conflict_or_replay = await self._handle_existing(
+                redis, cache_key, fingerprint
+            )
+            if conflict_or_replay is not None:
+                return conflict_or_replay
             try:
-                claimed = await redis.set(cache_key, IN_PROGRESS, nx=True, ex=self._ttl)
+                claimed = await redis.set(
+                    cache_key, claim_payload, nx=True, ex=self._ttl
+                )
             except Exception as exc:
                 logger.warning("idempotency.reclaim_failed", error=str(exc))
-                return JSONResponse(
-                    status_code=409,
-                    content={
-                        "error": "IdempotencyConflict",
-                        "detail": (
-                            "Could not claim this Idempotency-Key after a failed "
-                            "replay; retry shortly"
-                        ),
-                    },
+                return _conflict(
+                    "Could not claim this Idempotency-Key after a failed "
+                    "replay; retry shortly"
                 )
             if not claimed:
-                replayed = await self._replay(redis, cache_key)
-                if replayed is not None:
-                    return replayed
-                return JSONResponse(
-                    status_code=409,
-                    content={
-                        "error": "IdempotencyConflict",
-                        "detail": (
-                            "Could not claim or replay this Idempotency-Key; "
-                            "retry shortly"
-                        ),
-                    },
+                conflict_or_replay = await self._handle_existing(
+                    redis, cache_key, fingerprint
+                )
+                if conflict_or_replay is not None:
+                    return conflict_or_replay
+                return _conflict(
+                    "Could not claim or replay this Idempotency-Key; retry shortly"
                 )
 
         response = await call_next(request)
         background = getattr(response, "background", None)
-        captured = await _capture(response)
+        captured = await _capture(response, fingerprint)
         await self._store(redis, cache_key, captured)
         rebuilt = _rebuild(captured)
-        # Preserve BackgroundTasks (e.g. receipt extraction) across the rebuild
         if background is not None:
             rebuilt.background = background
         return rebuilt
 
-    async def _replay(self, redis: Redis, cache_key: str) -> Response | None:
-        """Stored response, or 409 while the first call is still running"""
+    async def _handle_existing(
+        self, redis: Redis, cache_key: str, fingerprint: str
+    ) -> Response | None:
+        """Replay, 409, or None when the key can be reclaimed"""
         try:
             stored = await redis.get(cache_key)
         except Exception as exc:
@@ -158,21 +151,17 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             return None
 
         if stored is None:
-            # Key expired between SET NX and GET — let the caller re-claim
             return None
-        if stored == IN_PROGRESS:
-            return JSONResponse(
-                status_code=409,
-                content={
-                    "error": "IdempotencyConflict",
-                    "detail": (
-                        "A request with this Idempotency-Key is still being "
-                        "processed; retry once it completes"
-                    ),
-                },
+
+        # Legacy in-progress sentinel from older middleware versions
+        if stored == "__in_progress__":
+            return _conflict(
+                "A request with this Idempotency-Key is still being "
+                "processed; retry once it completes"
             )
+
         try:
-            captured: CapturedResponse = json.loads(stored)
+            payload: dict[str, Any] = json.loads(stored)
         except json.JSONDecodeError:
             logger.warning("idempotency.corrupt_entry", key=cache_key)
             try:
@@ -181,7 +170,26 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 logger.warning("idempotency.corrupt_delete_failed", error=str(exc))
             return None
 
-        response = _rebuild(captured)
+        stored_fp = str(payload.get("fingerprint", ""))
+        if stored_fp and stored_fp != fingerprint:
+            return _conflict(
+                "Idempotency-Key was already used with a different request body"
+            )
+
+        if payload.get("state") == STATE_IN_PROGRESS:
+            return _conflict(
+                "A request with this Idempotency-Key is still being "
+                "processed; retry once it completes"
+            )
+
+        if "status_code" not in payload:
+            try:
+                await redis.delete(cache_key)
+            except Exception as exc:
+                logger.warning("idempotency.corrupt_delete_failed", error=str(exc))
+            return None
+
+        response = _rebuild(payload)  # type: ignore[arg-type]
         response.headers[REPLAY_HEADER] = "true"
         return response
 
@@ -198,12 +206,20 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 class CapturedResponse(TypedDict):
     """Replayable response snapshot stored in Redis"""
 
+    fingerprint: str
     status_code: int
     headers: dict[str, str]
     body: str
 
 
-async def _capture(response: Response) -> CapturedResponse:
+def _conflict(detail: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={"error": "IdempotencyConflict", "detail": detail},
+    )
+
+
+async def _capture(response: Response, fingerprint: str) -> CapturedResponse:
     """Drain a (possibly streaming) response into a replayable dict"""
     chunks: list[bytes] = []
     body_iterator = getattr(response, "body_iterator", None)
@@ -220,9 +236,9 @@ async def _capture(response: Response) -> CapturedResponse:
         if key.lower() not in _SKIPPED_HEADERS
     }
     return CapturedResponse(
+        fingerprint=fingerprint,
         status_code=response.status_code,
         headers=headers,
-        # Text storage — Redis holds JSON; mutating endpoints are not binary downloads
         body=body.decode("utf-8", errors="replace"),
     )
 

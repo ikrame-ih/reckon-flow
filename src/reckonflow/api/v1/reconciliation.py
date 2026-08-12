@@ -23,15 +23,8 @@ router = APIRouter(prefix="/reconciliation", tags=["reconciliation"])
     response_model=MatchSuggestionResponse,
     summary="Suggest bank lines for an expense",
     description=(
-        "Runs the hybrid pipeline and returns ranked candidates.\n\n"
-        "1. SQL prefilter on a date window and an amount tolerance\n"
-        "2. RapidFuzz `token_set_ratio` on the descriptions\n"
-        "3. Embedding cosine, only when both rows already have an embedding\n"
-        "4. Reciprocal Rank Fusion with `k=60`\n\n"
-        "`confidence` is the fused score normalized against the best score "
-        "reachable, so it stays comparable whether or not embeddings were "
-        "available. Every individual signal is returned in `signals` so a "
-        "reviewer can see why a line was proposed."
+        "Ranked candidates via SQL prefilter, RapidFuzz, optional embeddings, "
+        "and RRF (k=60). Per-signal scores are in `signals`."
     ),
     responses={404: {"model": ErrorResponse, "description": "Unknown expense"}},
 )
@@ -77,10 +70,8 @@ async def suggest_matches(
     response_model=MatchResult,
     summary="Confirm a match",
     description=(
-        "Links the expense to the chosen bank line. Both rows are read with "
-        "`SELECT ... FOR UPDATE` before the write, so two reviewers "
-        "confirming the same suggestion cannot both succeed — the second gets "
-        "409."
+        "Links expense ↔ bank line under `SELECT … FOR UPDATE`. A second "
+        "confirm on the same rows returns **409**."
     ),
     responses={
         404: {"model": ErrorResponse, "description": "Unknown expense or bank line"},
@@ -106,9 +97,8 @@ async def confirm_match(
     response_model=MatchResult,
     summary="Auto-match when the engine is confident",
     description=(
-        "Matches only when the top candidate clears the confidence threshold, "
-        "the minimum text agreement, and is clearly ahead of the runner-up. "
-        "Otherwise the expense moves to `pending_review` and no link is made."
+        "Matches only when the top candidate clears confidence, fuzzy floor, "
+        "and beats the runner-up; otherwise parks as `pending_review`."
     ),
     responses={404: {"model": ErrorResponse, "description": "Unknown expense"}},
 )
@@ -117,6 +107,6 @@ async def auto_match(expense_id: int, service: ReconciliationServiceDep) -> Matc
     expense, bank_transaction_id = await service.auto_reconcile(expense_id)
     return MatchResult(
         expense_id=expense.id,
-        bank_transaction_id=bank_transaction_id or 0,
+        bank_transaction_id=bank_transaction_id,
         match_status=expense.match_status,
     )

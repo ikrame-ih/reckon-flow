@@ -6,6 +6,7 @@ still in progress, and Redis completely down.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from fastapi import FastAPI
@@ -13,9 +14,9 @@ from fastapi.testclient import TestClient
 
 from reckonflow.api.middleware.idempotency import (
     IDEMPOTENCY_HEADER,
-    IN_PROGRESS,
     REPLAY_HEADER,
     IdempotencyMiddleware,
+    body_fingerprint,
     build_cache_key,
 )
 
@@ -94,7 +95,9 @@ def test_first_call_runs_and_is_cached() -> None:
     first_call = redis.set_calls[0]
     assert first_call["nx"] is True
     assert first_call["ex"] == 86_400
-    assert first_call["value"] == IN_PROGRESS
+    claim = json.loads(first_call["value"])
+    assert claim["state"] == "in_progress"
+    assert "fingerprint" in claim
 
 
 def test_retry_replays_the_stored_response_without_rerunning() -> None:
@@ -119,8 +122,10 @@ def test_in_progress_key_returns_409() -> None:
     body = b'{"name": "hotel"}'
 
     request = client.build_request("POST", "/things", content=body)
-    cache_key = build_cache_key(request, "key-1", body)  # type: ignore[arg-type]
-    redis.store[cache_key] = IN_PROGRESS
+    cache_key = build_cache_key(request, "key-1")  # type: ignore[arg-type]
+    redis.store[cache_key] = json.dumps(
+        {"state": "in_progress", "fingerprint": body_fingerprint(body)}
+    )
 
     response = client.post(
         "/things", content=body, headers={IDEMPOTENCY_HEADER: "key-1"}
@@ -141,8 +146,8 @@ def test_different_keys_run_separately() -> None:
     assert len(calls) == 2
 
 
-def test_same_key_with_a_different_body_is_not_replayed() -> None:
-    """Same key with a different body is not a replay"""
+def test_same_key_with_a_different_body_returns_409() -> None:
+    """Same key with a different body is a conflict, not a second run"""
     redis = FakeRedis()
     client, calls = build_client(redis)
     headers = {IDEMPOTENCY_HEADER: "key-1"}
@@ -150,8 +155,9 @@ def test_same_key_with_a_different_body_is_not_replayed() -> None:
     client.post("/things", json={"name": "a"}, headers=headers)
     second = client.post("/things", json={"name": "b"}, headers=headers)
 
-    assert len(calls) == 2
-    assert second.json()["name"] == "b"
+    assert len(calls) == 1
+    assert second.status_code == 409
+    assert second.json()["error"] == "IdempotencyConflict"
 
 
 def test_request_without_a_key_is_untouched() -> None:
@@ -210,8 +216,7 @@ def test_corrupt_cache_is_deleted_and_reclaimed() -> None:
 
     # First plant a corrupt value under the key the next request will use
     primed = client.build_request("POST", "/things", json={"name": "hotel"})
-    body = primed.content
-    cache_key = build_cache_key(primed, "key-corrupt", body)  # type: ignore[arg-type]
+    cache_key = build_cache_key(primed, "key-corrupt")  # type: ignore[arg-type]
     redis.store[cache_key] = "{not-json"
 
     response = client.post("/things", json={"name": "hotel"}, headers=headers)
@@ -233,6 +238,7 @@ def test_background_tasks_survive_idempotency_rebuild() -> None:
 
     rebuilt = _rebuild(
         CapturedResponse(
+            fingerprint="abc",
             status_code=200,
             headers={"content-type": "application/json"},
             body="{}",

@@ -76,5 +76,7 @@ class MatchResult(BaseModel):
     """Outcome of linking an expense to a bank line"""
 
     expense_id: int
-    bank_transaction_id: int
+    bank_transaction_id: int | None = Field(
+        None, description="Null when auto-match found no confident candidate"
+    )
     match_status: str = Field(..., examples=["matched"])

@@ -13,10 +13,13 @@ ledger entries or bank imports.
 
 Use an `Idempotency-Key` header with Redis:
 
-1. `SET key NX EX 86400` claims the key for 24 hours
-2. On first success, store status code + body
-3. A duplicate key returns the **original cached response** (not only 409)
-4. Replays are marked with `Idempotency-Replayed: true`
+1. `SET key NX EX 86400` claims the key for 24 hours (key =
+   prefix + method + path + Idempotency-Key)
+2. Store a SHA-256 **fingerprint** of the request body with the claim
+3. On first success, store status code + body + fingerprint
+4. Same key + same body → replay the **original cached response**
+5. Same key + **different body** → **409** (not a second execution)
+6. Replays are marked with `Idempotency-Replayed: true`
 
 ## Accepted risk: fail-open
 
