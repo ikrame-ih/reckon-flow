@@ -12,7 +12,8 @@ uv run uvicorn reckonflow.main:app --reload --port 8000
 
 Open http://localhost:8000/docs
 
-Optional: set `API_KEY` in `.env` and send `X-API-Key` on POST/PUT/PATCH/DELETE.
+Optional: set `API_KEY` in `.env` and send `X-API-Key` on **all** finance
+`/api/v1` calls (reads and writes). `/health`, `/ready`, and docs stay public.
 
 ## Demo order
 
@@ -20,9 +21,10 @@ Optional: set `API_KEY` in `.env` and send `X-API-Key` on POST/PUT/PATCH/DELETE.
 2. `POST /api/v1/travel-requests` — creates a pending approval
 3. `POST /api/v1/approvals/{id}/transition` with `{"action":"approve"}`
 4. `POST /api/v1/expenses` — amounts as **strings**; link to the approved trip
-5. `POST /api/v1/bank/import` — multipart CSV
-6. `POST /api/v1/reconciliation/expenses/{id}/suggest`
-7. `POST /api/v1/receipts?expense_id=` — returns **202**; poll `GET /receipts/{id}`
+5. `POST /api/v1/bank/transactions/upload` — multipart CSV
+6. `GET /api/v1/reconciliation/expenses/{id}/suggestions`
+7. `POST /api/v1/receipts` — multipart form: `file` + optional `expense_id`;
+   returns **202**; poll `GET /api/v1/receipts/{id}`
 
 Always send money as JSON strings (`"120.50"`), never as numbers.
 
@@ -36,13 +38,14 @@ Always send money as JSON strings (`"120.50"`), never as numbers.
 
 ### Production checklist (Render env)
 
-After each deploy, `GET /health` should show `"status":"ok"` with both
-`database` and `redis` true. If `redis` is false, idempotency is fail-open.
+After each deploy, `GET /ready` should return HTTP 200 with `"database": true`.
+`GET /health` is liveness (always 200 while the process is up). If `redis` is
+false on either probe, idempotency is fail-open.
 
 1. `DATABASE_URL` — Neon URL with `postgresql+asyncpg://` and `ssl=require`
 2. `REDIS_URL` — Upstash **`rediss://`** URL (TLS). Rotate the token if it
    was ever exposed, then paste the new value into Render.
-3. `API_KEY` — non-empty; mutating routes return 401 without `X-API-Key`
-4. Confirm start logs include `alembic upgrade head` reaching revision `002`
+3. `API_KEY` — **required**; production refuses to boot if empty
+4. Confirm start logs include `alembic upgrade head` reaching revision `004`
 
 Details: [Phase 6](phases/06-polish.md). Docs site: https://ikrame-ih.github.io/reckon-flow/

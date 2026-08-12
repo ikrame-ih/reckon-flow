@@ -16,8 +16,8 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from reckonflow.core.db import SessionLocal, engine
-from reckonflow.models import Account, Base
+from reckonflow.core.db import SessionLocal
+from reckonflow.models import Account
 from reckonflow.models.travel import ApprovalStatus
 from reckonflow.services.bank import BankService
 from reckonflow.services.ledger import LedgerService
@@ -25,11 +25,18 @@ from reckonflow.services.travel import TravelService
 
 
 async def seed() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
+    # Alembic owns the schema — never create_all here (would skip triggers/indexes)
     async with SessionLocal() as session:
-        existing = await session.scalar(select(Account).where(Account.code == "CASH"))
+        try:
+            existing = await session.scalar(
+                select(Account).where(Account.code == "CASH")
+            )
+        except Exception as exc:
+            raise SystemExit(
+                "Database schema missing or unreachable. "
+                "Run `uv run alembic upgrade head` first.\n"
+                f"Detail: {exc}"
+            ) from exc
         if existing is not None:
             print("Seed skipped: demo accounts already exist (CASH found)")
             return
