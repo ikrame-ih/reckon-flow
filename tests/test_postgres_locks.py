@@ -129,51 +129,56 @@ async def test_for_update_blocks_concurrent_reader(pg_engine: AsyncEngine) -> No
 
 @pytest.mark.asyncio
 async def test_ledger_entries_reject_update_and_delete(
-    pg_session: AsyncSession,
+    pg_engine: AsyncEngine,
 ) -> None:
+    """UPDATE/DELETE on ledger_entries must raise the append-only trigger"""
+    from sqlalchemy.exc import DBAPIError
+
     from reckonflow.models import Account, LedgerEntry, LedgerTransaction
 
-    cash = Account(code="CASH", name="Cash", currency="EUR")
-    travel = Account(code="TRAVEL", name="Travel", currency="EUR")
-    pg_session.add_all([cash, travel])
-    await pg_session.flush()
+    maker = async_sessionmaker(pg_engine, class_=AsyncSession, expire_on_commit=False)
 
-    tx = LedgerTransaction(reference="IMM-1", description="seed")
-    pg_session.add(tx)
-    await pg_session.flush()
-    debit = LedgerEntry(
-        transaction_id=tx.id,
-        account_id=travel.id,
-        debit=Decimal("10.00"),
-        credit=Decimal("0"),
-        currency="EUR",
-    )
-    credit = LedgerEntry(
-        transaction_id=tx.id,
-        account_id=cash.id,
-        debit=Decimal("0"),
-        credit=Decimal("10.00"),
-        currency="EUR",
-    )
-    pg_session.add_all([debit, credit])
-    await pg_session.flush()
-    await pg_session.commit()
-
-    with pytest.raises(Exception, match="append-only"):
-        await pg_session.execute(
-            text("UPDATE ledger_entries SET memo = 'x' WHERE id = :id"),
-            {"id": debit.id},
+    async with maker() as session:
+        cash = Account(code="CASH", name="Cash", currency="EUR")
+        travel = Account(code="TRAVEL", name="Travel", currency="EUR")
+        session.add_all([cash, travel])
+        await session.flush()
+        tx = LedgerTransaction(reference="IMM-1", description="seed")
+        session.add(tx)
+        await session.flush()
+        debit = LedgerEntry(
+            transaction_id=tx.id,
+            account_id=travel.id,
+            debit=Decimal("10.00"),
+            credit=Decimal("0"),
+            currency="EUR",
         )
-        await pg_session.commit()
-
-    await pg_session.rollback()
-
-    with pytest.raises(Exception, match="append-only"):
-        await pg_session.execute(
-            text("DELETE FROM ledger_entries WHERE id = :id"),
-            {"id": debit.id},
+        credit = LedgerEntry(
+            transaction_id=tx.id,
+            account_id=cash.id,
+            debit=Decimal("0"),
+            credit=Decimal("10.00"),
+            currency="EUR",
         )
-        await pg_session.commit()
+        session.add_all([debit, credit])
+        await session.commit()
+        debit_id = debit.id
+
+    async with pg_engine.connect() as conn:
+        with pytest.raises(DBAPIError, match="append-only"):
+            await conn.execute(
+                text("UPDATE ledger_entries SET memo = 'x' WHERE id = :id"),
+                {"id": debit_id},
+            )
+            await conn.commit()
+
+    async with pg_engine.connect() as conn:
+        with pytest.raises(DBAPIError, match="append-only"):
+            await conn.execute(
+                text("DELETE FROM ledger_entries WHERE id = :id"),
+                {"id": debit_id},
+            )
+            await conn.commit()
 
 
 @pytest.mark.asyncio
