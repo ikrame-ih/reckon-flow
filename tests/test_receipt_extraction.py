@@ -123,3 +123,90 @@ def test_only_throttling_is_retried() -> None:
     assert _is_rate_limited(RuntimeError("429 Too Many Requests")) is True
     assert _is_rate_limited(RuntimeError("rate limit reached")) is True
     assert _is_rate_limited(ValueError("400 invalid request")) is False
+
+
+def test_default_groq_model_is_supported() -> None:
+    from reckonflow.core.config import Settings
+
+    assert Settings().groq_model == "openai/gpt-oss-20b"
+
+
+async def test_groq_extractor_returns_validated_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Provider path without a live Groq call"""
+    from reckonflow.ai.groq_provider import GroqReceiptExtractor
+
+    expected = ReceiptExtraction.model_validate(
+        {"vendor": "ACME", "total": "10.00", "currency": "EUR"}
+    )
+
+    class _Result:
+        output = expected
+
+    class _Agent:
+        async def run(self, _prompt: str) -> _Result:
+            return _Result()
+
+    extractor = GroqReceiptExtractor(api_key="test-key", model="openai/gpt-oss-20b")
+    monkeypatch.setattr(extractor, "_build_agent", lambda: _Agent())
+
+    result = await extractor.extract(raw_text=HOTEL_RECEIPT, filename="hotel.txt")
+    assert result.vendor == "ACME"
+    assert result.total == "10.00"
+
+
+async def test_groq_extractor_retries_rate_limits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from reckonflow.ai.groq_provider import GroqReceiptExtractor
+
+    expected = ReceiptExtraction.model_validate({"vendor": "ACME", "total": "10.00"})
+    calls = {"n": 0}
+
+    class _RateLimit(Exception):
+        status_code = 429
+
+    class _Result:
+        output = expected
+
+    class _Agent:
+        async def run(self, _prompt: str) -> _Result:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise _RateLimit("429 Too Many Requests")
+            return _Result()
+
+    extractor = GroqReceiptExtractor(
+        api_key="test-key", model="openai/gpt-oss-20b", max_attempts=3
+    )
+    monkeypatch.setattr(extractor, "_build_agent", lambda: _Agent())
+
+    result = await extractor.extract(raw_text="TOTAL EUR 10.00", filename="a.txt")
+    assert result.total == "10.00"
+    assert calls["n"] == 2
+
+
+async def test_groq_extractor_wraps_schema_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from reckonflow.ai.groq_provider import GroqReceiptExtractor
+
+    class _Agent:
+        async def run(self, _prompt: str) -> object:
+            raise ValidationError.from_exception_data(
+                "ReceiptExtraction",
+                [
+                    {
+                        "type": "missing",
+                        "loc": ("total",),
+                        "input": {},
+                    }
+                ],
+            )
+
+    extractor = GroqReceiptExtractor(api_key="test-key", model="openai/gpt-oss-20b")
+    monkeypatch.setattr(extractor, "_build_agent", lambda: _Agent())
+
+    with pytest.raises(ExtractionError, match="Groq extraction failed"):
+        await extractor.extract(raw_text="TOTAL EUR 10.00", filename="a.txt")

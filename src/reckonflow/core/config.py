@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
-    # When set, mutating requests must send matching X-API-Key. Empty = disabled.
+    # When set, all /api/v1 finance routes need matching X-API-Key.
+    # Empty = disabled. APP_ENV=production refuses to boot if empty.
     api_key: str = ""
 
     rate_limit_enabled: bool = True
@@ -32,7 +33,7 @@ class Settings(BaseSettings):
 
     # Groq free tier for receipts; empty key → deterministic stub (CI/demos)
     groq_api_key: str = ""
-    groq_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    groq_model: str = "openai/gpt-oss-20b"
 
     # Local filesystem for now; object storage is a drop-in via ReceiptService
     receipt_storage_dir: str = "var/receipts"
