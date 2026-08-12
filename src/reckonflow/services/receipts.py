@@ -12,10 +12,11 @@ import uuid
 from pathlib import Path
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from reckonflow.core.config import get_settings
-from reckonflow.core.exceptions import NotFoundError
+from reckonflow.core.exceptions import ConflictError, NotFoundError
 from reckonflow.models import Expense, Receipt
 from reckonflow.models.travel import ReceiptStatus
 from reckonflow.schemas.receipt import ReceiptExtraction
@@ -23,6 +24,7 @@ from reckonflow.schemas.receipt import ReceiptExtraction
 # Strip path separators and odd characters so names like ../../etc/passwd
 # cannot escape the storage directory when joined
 _SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
+MAX_EXTRACTION_CHARS = 50_000
 
 
 def safe_filename(name: str) -> str:
@@ -46,17 +48,22 @@ class ReceiptService:
         content: bytes,
         expense_id: int | None = None,
     ) -> Receipt:
-        """Write bytes to disk first, then insert the row that references them"""
+        """Insert the row, then write bytes so a failed flush leaves no orphan"""
         if expense_id is not None:
             expense = await self._session.get(Expense, expense_id)
             if expense is None:
                 raise NotFoundError(f"Expense {expense_id} not found")
+            existing = await self._session.scalar(
+                select(Receipt.id).where(Receipt.expense_id == expense_id)
+            )
+            if existing is not None:
+                raise ConflictError(
+                    f"Expense {expense_id} already has a receipt (id={existing})"
+                )
 
         self._storage.mkdir(parents=True, exist_ok=True)
-        # Prefix a uuid so two people uploading receipt.pdf never collide
         stored_name = f"{uuid.uuid4().hex}_{safe_filename(filename)}"
         path = self._resolve_storage_path(self._storage / stored_name)
-        path.write_bytes(content)
 
         receipt = Receipt(
             expense_id=expense_id,
@@ -66,7 +73,18 @@ class ReceiptService:
             status=ReceiptStatus.UPLOADED,
         )
         self._session.add(receipt)
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            await self._session.rollback()
+            raise ConflictError(f"Expense {expense_id} already has a receipt") from exc
+
+        try:
+            path.write_bytes(content)
+        except Exception:
+            # Roll back the row if the filesystem write fails
+            await self._session.rollback()
+            raise
         return receipt
 
     async def get_receipt(self, receipt_id: int) -> Receipt:
@@ -126,12 +144,11 @@ class ReceiptService:
             return None
 
     def read_text(self, receipt: Receipt) -> str:
-        """Read stored bytes as text for extraction
-
-        Text-like receipts work today; OCR or a vision model can plug in here
-        later without changing the rest of the pipeline
-        """
+        """Read stored bytes as text for extraction (plain text / OCR output only)"""
         path = self._resolve_storage_path(Path(receipt.storage_path))
         if not path.exists():
             raise NotFoundError(f"Stored file for receipt {receipt.id} is missing")
-        return path.read_bytes().decode("utf-8", errors="replace")
+        text = path.read_bytes().decode("utf-8", errors="replace")
+        if len(text) > MAX_EXTRACTION_CHARS:
+            return text[:MAX_EXTRACTION_CHARS]
+        return text

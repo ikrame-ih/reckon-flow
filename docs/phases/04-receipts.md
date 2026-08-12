@@ -8,9 +8,10 @@ Treat model output as untrusted data.
 ## Worked example
 
 ```http
-POST /api/v1/receipts?expense_id=1
+POST /api/v1/receipts
 Content-Type: multipart/form-data
 file=<hotel.txt>
+expense_id=1
 
 → 202 {"id": 1, "status": "pending", ...}
 
@@ -18,8 +19,14 @@ GET /api/v1/receipts/1
 → status=completed, extraction={vendor, amount, currency, date, ...}
 ```
 
+Uploads are **plain text / OCR text only** (not PDF or images). Size is checked
+before the whole body is buffered.
+
 Without `GROQ_API_KEY` the rule-based stub runs so CI stays offline. With a
-key, Groq + PydanticAI fill `ReceiptExtraction` (`extra="forbid"`).
+key, Groq + PydanticAI fill `ReceiptExtraction` (`extra="forbid"`). Default
+model is `openai/gpt-oss-20b` via `GROQ_MODEL` (override anytime). CI evals
+score the stub; run `scripts/run_evals.py` locally with a key to check the
+live provider.
 
 ## Eval snapshot (stub)
 
