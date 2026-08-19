@@ -83,6 +83,21 @@ Interesting decisions (detail in docs / ADRs):
 - Embeddings are a **deterministic stand-in** offline; optional real vectors later.
 - Demo storage for receipts is local disk (ephemeral on free PaaS).
 
+## Evaluation & reliability
+
+Receipt fixtures and three matching baselines (fuzzy / stub-embeddings / hybrid
+RRF) live under `evals/`. Inventory of what is and is not measured:
+[docs/evaluation.md](docs/evaluation.md).
+
+```bash
+uv run python scripts/run_evals.py
+uv run python scripts/run_matching_evals.py
+```
+
+Do **not** treat those hit rates as production AI quality. Embeddings on the
+default path are a hashed-token stub. The public demo can take ~50s to wake
+(Render free). Details in the evaluation doc.
+
 ## Quick start
 
 **Prerequisites:** Python 3.12+, [uv](https://github.com/astral-sh/uv), PostgreSQL
@@ -113,6 +128,7 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs).
 | `uv run pytest --cov=reckonflow` | Tests (+ coverage) |
 | `uv run pip-audit` | Dependency CVEs |
 | `uv run python scripts/run_evals.py` | Receipt stub evals |
+| `uv run python scripts/run_matching_evals.py` | Fuzzy / stub-embedding / hybrid matching |
 | `uv run mkdocs serve` | Docs site locally |
 
 **CI (every push/PR):** ruff · format · mypy · Alembic against Postgres ·
@@ -153,7 +169,7 @@ src/reckonflow/
   tasks/        # BackgroundTasks helpers
 alembic/        # Migrations
 docs/           # MkDocs (phases, glossary, ADRs, security)
-evals/          # Receipt fixtures
+evals/          # Receipt fixtures + synthetic matching dataset
 tests/
 scripts/        # seed_demo, run_evals, render_start
 ```

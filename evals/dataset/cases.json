@@ -1,0 +1,1446 @@
+{
+  "disclaimer": "Synthetic cases for offline matching baselines. N is too small to claim production quality. Gold labels are authored, not taken from live bank files.",
+  "n": 40,
+  "cases": [
+    {
+      "id": "taxi-abbrev-01",
+      "expense": {
+        "vendor": "Berlin Taxi GmbH",
+        "description": "Airport transfer",
+        "amount": "45.50",
+        "date": "2026-07-21"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "TAXI BERLIN 21/07",
+          "amount": "45.50",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "UBER TRIP BERLIN",
+          "amount": "12.40",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 3,
+          "description": "ADLON HOTEL BERLIN",
+          "amount": "245.00",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 4,
+          "description": "DB BAHN TICKET",
+          "amount": "45.50",
+          "date": "2026-07-22"
+        }
+      ]
+    },
+    {
+      "id": "taxi-reorder-02",
+      "expense": {
+        "vendor": "Free Now",
+        "description": "Ride to Tegel",
+        "amount": "18.90",
+        "date": "2026-07-22"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "TEGEL RIDE FREE NOW",
+          "amount": "18.90",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 2,
+          "description": "BVG TICKET",
+          "amount": "8.80",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 3,
+          "description": "STARBUCKS BERLIN",
+          "amount": "6.20",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 4,
+          "description": "FREE NOW RIDE TXL",
+          "amount": "19.10",
+          "date": "2026-07-22"
+        }
+      ]
+    },
+    {
+      "id": "hotel-merchant-03",
+      "expense": {
+        "vendor": "Hotel Adlon Kempinski",
+        "description": "One night stay",
+        "amount": "420.00",
+        "date": "2026-07-20"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "ADLON KEMPINSKI BERLIN",
+          "amount": "420.00",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 2,
+          "description": "NH HOTEL BERLIN",
+          "amount": "189.00",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 3,
+          "description": "TAXI BERLIN",
+          "amount": "32.00",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 4,
+          "description": "KEMPINSKI SPA",
+          "amount": "85.00",
+          "date": "2026-07-21"
+        }
+      ]
+    },
+    {
+      "id": "hotel-noisy-04",
+      "expense": {
+        "vendor": "Hotel Mitte Berlin",
+        "description": "Conference lodging",
+        "amount": "142.80",
+        "date": "2026-07-20"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "HOTEL MITTE BERLIN",
+          "amount": "142.80",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 2,
+          "description": "MITTE CAFE",
+          "amount": "14.20",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 3,
+          "description": "MARITIM HOTEL",
+          "amount": "142.80",
+          "date": "2026-07-19"
+        },
+        {
+          "id": 4,
+          "description": "DB BAHN",
+          "amount": "49.90",
+          "date": "2026-07-20"
+        }
+      ]
+    },
+    {
+      "id": "airline-iata-05",
+      "expense": {
+        "vendor": "Lufthansa",
+        "description": "Málaga to Berlin",
+        "amount": "186.40",
+        "date": "2026-07-18"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "LH 1840 AGP TXL",
+          "amount": "186.40",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 2,
+          "description": "RYANAIR FR1234",
+          "amount": "49.99",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 3,
+          "description": "EASYJET BERLIN",
+          "amount": "72.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 4,
+          "description": "LH LOUNGE BERLIN",
+          "amount": "35.00",
+          "date": "2026-07-18"
+        }
+      ]
+    },
+    {
+      "id": "train-abbrev-06",
+      "expense": {
+        "vendor": "Deutsche Bahn",
+        "description": "Berlin to Hamburg ICE",
+        "amount": "67.90",
+        "date": "2026-07-23"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "DB ICE BER HMB",
+          "amount": "67.90",
+          "date": "2026-07-23"
+        },
+        {
+          "id": 2,
+          "description": "FLIXBUS HAMBURG",
+          "amount": "24.99",
+          "date": "2026-07-23"
+        },
+        {
+          "id": 3,
+          "description": "HBF FOOD COURT",
+          "amount": "12.50",
+          "date": "2026-07-23"
+        },
+        {
+          "id": 4,
+          "description": "DB BAHN CARD",
+          "amount": "67.90",
+          "date": "2026-07-25"
+        }
+      ]
+    },
+    {
+      "id": "meal-per-diem-07",
+      "expense": {
+        "vendor": "Vapiano Berlin",
+        "description": "Team dinner",
+        "amount": "86.40",
+        "date": "2026-07-21"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "VAPIANO FRIEDRICHSTR",
+          "amount": "86.40",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "MCDONALDS BERLIN",
+          "amount": "14.80",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 3,
+          "description": "PRET A MANGER",
+          "amount": "9.60",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 4,
+          "description": "VAPIANO MUNICH",
+          "amount": "86.40",
+          "date": "2026-07-21"
+        }
+      ]
+    },
+    {
+      "id": "fx-rounding-08",
+      "expense": {
+        "vendor": "Starbucks Reserve",
+        "description": "Coffee meeting",
+        "amount": "12.00",
+        "date": "2026-07-21"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "SBUX RESERVE BER",
+          "amount": "12.15",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "COSTA COFFEE",
+          "amount": "11.80",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 3,
+          "description": "REWE BERLIN",
+          "amount": "12.00",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 4,
+          "description": "SBUX AIRPORT",
+          "amount": "8.50",
+          "date": "2026-07-21"
+        }
+      ]
+    },
+    {
+      "id": "card-fee-09",
+      "expense": {
+        "vendor": "Museum Island ticket",
+        "description": "Pergamon visit",
+        "amount": "19.00",
+        "date": "2026-07-22"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "PERGAMON MUSEUM BER",
+          "amount": "19.38",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 2,
+          "description": "TV TOWER BERLIN",
+          "amount": "21.50",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 3,
+          "description": "BERLIN PASS",
+          "amount": "19.00",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 4,
+          "description": "MUSEUM CAFE",
+          "amount": "6.40",
+          "date": "2026-07-22"
+        }
+      ]
+    },
+    {
+      "id": "date-window-10",
+      "expense": {
+        "vendor": "Airbnb Payments",
+        "description": "Berlin apartment",
+        "amount": "310.00",
+        "date": "2026-07-19"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "AIRBNB *H8K2 BERLIN",
+          "amount": "310.00",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "BOOKING.COM HOTEL",
+          "amount": "310.00",
+          "date": "2026-07-19"
+        },
+        {
+          "id": 3,
+          "description": "AIRBNB CLEANING",
+          "amount": "45.00",
+          "date": "2026-07-19"
+        },
+        {
+          "id": 4,
+          "description": "WEWORK BERLIN",
+          "amount": "89.00",
+          "date": "2026-07-20"
+        }
+      ]
+    },
+    {
+      "id": "parking-11",
+      "expense": {
+        "vendor": "APCOA Parking",
+        "description": "Airport parking Tegel",
+        "amount": "28.00",
+        "date": "2026-07-18"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "APCOA TXL P2",
+          "amount": "28.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 2,
+          "description": "Q-PARK BERLIN",
+          "amount": "16.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 3,
+          "description": "SHELL STATION",
+          "amount": "28.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 4,
+          "description": "APCOA MUNICH",
+          "amount": "28.00",
+          "date": "2026-07-19"
+        }
+      ]
+    },
+    {
+      "id": "conference-12",
+      "expense": {
+        "vendor": "WeAreDevelopers",
+        "description": "Conference ticket",
+        "amount": "799.00",
+        "date": "2026-07-17"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "WEAREDEVELOPERS BER",
+          "amount": "799.00",
+          "date": "2026-07-17"
+        },
+        {
+          "id": 2,
+          "description": "EVENTBRITE MIXER",
+          "amount": "45.00",
+          "date": "2026-07-17"
+        },
+        {
+          "id": 3,
+          "description": "DEVFEST MUNICH",
+          "amount": "799.00",
+          "date": "2026-07-17"
+        },
+        {
+          "id": 4,
+          "description": "WEWORK DAY PASS",
+          "amount": "39.00",
+          "date": "2026-07-17"
+        }
+      ]
+    },
+    {
+      "id": "cowork-13",
+      "expense": {
+        "vendor": "WeWork",
+        "description": "Day pass Mitte",
+        "amount": "49.00",
+        "date": "2026-07-22"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "WEWORK SCHOENHAUSER",
+          "amount": "49.00",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 2,
+          "description": "MINDSPACE BERLIN",
+          "amount": "45.00",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 3,
+          "description": "STARBUCKS MITTE",
+          "amount": "7.20",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 4,
+          "description": "WEWORK MUNICH",
+          "amount": "49.00",
+          "date": "2026-07-22"
+        }
+      ]
+    },
+    {
+      "id": "pharmacy-14",
+      "expense": {
+        "vendor": "Apotheke am Hackeschen",
+        "description": "Travel kit",
+        "amount": "23.70",
+        "date": "2026-07-21"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "APOTHEKE HACKESCHER",
+          "amount": "23.70",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "DM DROGERIE",
+          "amount": "18.40",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 3,
+          "description": "ROSSMANN BERLIN",
+          "amount": "23.70",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 4,
+          "description": "APOTHEKE TXL",
+          "amount": "9.90",
+          "date": "2026-07-18"
+        }
+      ]
+    },
+    {
+      "id": "fr-hotel-15",
+      "expense": {
+        "vendor": "Hôtel des Arts",
+        "description": "Nuit à Paris",
+        "amount": "210.00",
+        "date": "2026-06-04"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "HOTEL DES ARTS PARIS",
+          "amount": "210.00",
+          "date": "2026-06-04"
+        },
+        {
+          "id": 2,
+          "description": "IBIS PARIS BASTILLE",
+          "amount": "118.00",
+          "date": "2026-06-04"
+        },
+        {
+          "id": 3,
+          "description": "RATP METRO",
+          "amount": "2.15",
+          "date": "2026-06-04"
+        },
+        {
+          "id": 4,
+          "description": "HOTEL DES ARTS LYON",
+          "amount": "210.00",
+          "date": "2026-06-04"
+        }
+      ]
+    },
+    {
+      "id": "fr-taxi-16",
+      "expense": {
+        "vendor": "G7 Taxi",
+        "description": "CDG to hotel",
+        "amount": "58.00",
+        "date": "2026-06-04"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "TAXI G7 CDG PARIS",
+          "amount": "58.00",
+          "date": "2026-06-04"
+        },
+        {
+          "id": 2,
+          "description": "UBER TRIP PARIS",
+          "amount": "42.00",
+          "date": "2026-06-04"
+        },
+        {
+          "id": 3,
+          "description": "RATP TICKET",
+          "amount": "2.15",
+          "date": "2026-06-04"
+        },
+        {
+          "id": 4,
+          "description": "SNCF TGV",
+          "amount": "58.00",
+          "date": "2026-06-05"
+        }
+      ]
+    },
+    {
+      "id": "es-ave-17",
+      "expense": {
+        "vendor": "Renfe",
+        "description": "AVE Málaga Madrid",
+        "amount": "74.30",
+        "date": "2026-05-12"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "RENFE AVE AGP MAD",
+          "amount": "74.30",
+          "date": "2026-05-12"
+        },
+        {
+          "id": 2,
+          "description": "ALSA BUS MADRID",
+          "amount": "28.50",
+          "date": "2026-05-12"
+        },
+        {
+          "id": 3,
+          "description": "CABIFY MADRID",
+          "amount": "14.20",
+          "date": "2026-05-12"
+        },
+        {
+          "id": 4,
+          "description": "RENFE CERCANIAS",
+          "amount": "2.60",
+          "date": "2026-05-12"
+        }
+      ]
+    },
+    {
+      "id": "es-hotel-18",
+      "expense": {
+        "vendor": "Hotel Only You",
+        "description": "Atocha lodging",
+        "amount": "156.00",
+        "date": "2026-05-12"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "ONLY YOU ATOCHA MAD",
+          "amount": "156.00",
+          "date": "2026-05-12"
+        },
+        {
+          "id": 2,
+          "description": "NH COLLECTION MADRID",
+          "amount": "142.00",
+          "date": "2026-05-12"
+        },
+        {
+          "id": 3,
+          "description": "TAXI ATOCHA",
+          "amount": "12.80",
+          "date": "2026-05-12"
+        },
+        {
+          "id": 4,
+          "description": "ONLY YOU MALAGA",
+          "amount": "156.00",
+          "date": "2026-05-12"
+        }
+      ]
+    },
+    {
+      "id": "uk-tube-19",
+      "expense": {
+        "vendor": "Transport for London",
+        "description": "Oyster top-up",
+        "amount": "20.00",
+        "date": "2026-04-08"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "TFL OYSTER TFL.GOV",
+          "amount": "20.00",
+          "date": "2026-04-08"
+        },
+        {
+          "id": 2,
+          "description": "UBER TRIP LONDON",
+          "amount": "18.40",
+          "date": "2026-04-08"
+        },
+        {
+          "id": 3,
+          "description": "PRET LONDON BRIDGE",
+          "amount": "7.15",
+          "date": "2026-04-08"
+        },
+        {
+          "id": 4,
+          "description": "NATIONAL RAIL",
+          "amount": "20.00",
+          "date": "2026-04-08"
+        }
+      ]
+    },
+    {
+      "id": "uk-hotel-20",
+      "expense": {
+        "vendor": "Premier Inn",
+        "description": "King's Cross stay",
+        "amount": "132.00",
+        "date": "2026-04-08"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "PREMIER INN KX LONDON",
+          "amount": "132.00",
+          "date": "2026-04-08"
+        },
+        {
+          "id": 2,
+          "description": "TRAVELLODGE EUSTON",
+          "amount": "98.00",
+          "date": "2026-04-08"
+        },
+        {
+          "id": 3,
+          "description": "TFL OYSTER",
+          "amount": "12.50",
+          "date": "2026-04-08"
+        },
+        {
+          "id": 4,
+          "description": "PREMIER INN MANCHESTER",
+          "amount": "132.00",
+          "date": "2026-04-08"
+        }
+      ]
+    },
+    {
+      "id": "saas-stripe-21",
+      "expense": {
+        "vendor": "Notion Labs",
+        "description": "Team workspace",
+        "amount": "16.00",
+        "date": "2026-07-01"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "NOTION LABS INC",
+          "amount": "16.00",
+          "date": "2026-07-01"
+        },
+        {
+          "id": 2,
+          "description": "SLACK TECHNOLOGIES",
+          "amount": "8.75",
+          "date": "2026-07-01"
+        },
+        {
+          "id": 3,
+          "description": "FIGMA INC",
+          "amount": "16.00",
+          "date": "2026-07-01"
+        },
+        {
+          "id": 4,
+          "description": "GITHUB INC",
+          "amount": "4.00",
+          "date": "2026-07-01"
+        }
+      ]
+    },
+    {
+      "id": "cloud-aws-22",
+      "expense": {
+        "vendor": "Amazon Web Services",
+        "description": "Sandbox usage",
+        "amount": "23.41",
+        "date": "2026-07-03"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "AWS EMEA AMAZON WEB",
+          "amount": "23.41",
+          "date": "2026-07-03"
+        },
+        {
+          "id": 2,
+          "description": "AMAZON MARKETPLACE",
+          "amount": "23.41",
+          "date": "2026-07-03"
+        },
+        {
+          "id": 3,
+          "description": "GOOGLE CLOUD",
+          "amount": "19.80",
+          "date": "2026-07-03"
+        },
+        {
+          "id": 4,
+          "description": "DIGITALOCEAN",
+          "amount": "12.00",
+          "date": "2026-07-03"
+        }
+      ]
+    },
+    {
+      "id": "phone-roam-23",
+      "expense": {
+        "vendor": "Vodafone",
+        "description": "EU roaming pack",
+        "amount": "15.00",
+        "date": "2026-07-18"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "VODAFONE ES ROAMING",
+          "amount": "15.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 2,
+          "description": "ORANGE HOLIDAY",
+          "amount": "15.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 3,
+          "description": "AIRALO ESIM",
+          "amount": "9.50",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 4,
+          "description": "VODAFONE DE",
+          "amount": "29.90",
+          "date": "2026-07-18"
+        }
+      ]
+    },
+    {
+      "id": "visa-fee-24",
+      "expense": {
+        "vendor": "TLS Contact",
+        "description": "Schengen appointment",
+        "amount": "80.00",
+        "date": "2026-03-02"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "TLS CONTACT VISA FEE",
+          "amount": "80.00",
+          "date": "2026-03-02"
+        },
+        {
+          "id": 2,
+          "description": "VFS GLOBAL",
+          "amount": "80.00",
+          "date": "2026-03-02"
+        },
+        {
+          "id": 3,
+          "description": "WESTERN UNION",
+          "amount": "45.00",
+          "date": "2026-03-02"
+        },
+        {
+          "id": 4,
+          "description": "TLS PHOTO SERVICE",
+          "amount": "12.00",
+          "date": "2026-03-02"
+        }
+      ]
+    },
+    {
+      "id": "same-amount-decoy-25",
+      "expense": {
+        "vendor": "Burgeramt copy shop",
+        "description": "Document copies",
+        "amount": "4.50",
+        "date": "2026-07-22"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "COPYSHOP MITTE BER",
+          "amount": "4.50",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 2,
+          "description": "KAFFEE MITTE",
+          "amount": "4.50",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 3,
+          "description": "BVG TICKET",
+          "amount": "3.80",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 4,
+          "description": "REWE SNACK",
+          "amount": "4.50",
+          "date": "2026-07-22"
+        }
+      ]
+    },
+    {
+      "id": "tips-included-26",
+      "expense": {
+        "vendor": "Zur Letzten Instanz",
+        "description": "Client lunch",
+        "amount": "64.00",
+        "date": "2026-07-21"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "LETZTE INSTANZ BERLIN",
+          "amount": "64.00",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "HOFBRÄU BERLIN",
+          "amount": "58.00",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 3,
+          "description": "DELIVEROO BERLIN",
+          "amount": "22.40",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 4,
+          "description": "ZUR LETZTEN INSTANZ",
+          "amount": "70.40",
+          "date": "2026-07-21"
+        }
+      ]
+    },
+    {
+      "id": "split-night-27",
+      "expense": {
+        "vendor": "Motel One",
+        "description": "Late checkout night",
+        "amount": "98.00",
+        "date": "2026-07-23"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "MOTEL ONE BERLIN-HAUPT",
+          "amount": "98.00",
+          "date": "2026-07-23"
+        },
+        {
+          "id": 2,
+          "description": "GENERATOR BERLIN",
+          "amount": "45.00",
+          "date": "2026-07-23"
+        },
+        {
+          "id": 3,
+          "description": "MOTEL ONE MUNICH",
+          "amount": "98.00",
+          "date": "2026-07-23"
+        },
+        {
+          "id": 4,
+          "description": "DB LOUNGE",
+          "amount": "25.00",
+          "date": "2026-07-23"
+        }
+      ]
+    },
+    {
+      "id": "baggage-28",
+      "expense": {
+        "vendor": "Ryanair",
+        "description": "Priority boarding",
+        "amount": "35.00",
+        "date": "2026-07-18"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "RYANAIR PRIORITY BAG",
+          "amount": "35.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 2,
+          "description": "EASYJET SPEEDY",
+          "amount": "32.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 3,
+          "description": "WIZZ AIR BAG",
+          "amount": "35.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 4,
+          "description": "TXL FOOD COURT",
+          "amount": "11.20",
+          "date": "2026-07-18"
+        }
+      ]
+    },
+    {
+      "id": "sim-kiosk-29",
+      "expense": {
+        "vendor": "Lebara",
+        "description": "Prepaid SIM",
+        "amount": "10.00",
+        "date": "2026-07-18"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "LEBARA PREPAID BER",
+          "amount": "10.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 2,
+          "description": "LYCAMOBILE KIOSK",
+          "amount": "10.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 3,
+          "description": "MEDIA MARKT SIM",
+          "amount": "19.99",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 4,
+          "description": "LEBARA TOPUP ES",
+          "amount": "10.00",
+          "date": "2026-07-20"
+        }
+      ]
+    },
+    {
+      "id": "museum-pass-30",
+      "expense": {
+        "vendor": "VisitBerlin",
+        "description": "WelcomeCard 48h",
+        "amount": "28.00",
+        "date": "2026-07-20"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "VISITBERLIN WELCOMECARD",
+          "amount": "28.00",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 2,
+          "description": "BERLIN PASS ONLINE",
+          "amount": "28.00",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 3,
+          "description": "TV TOWER TICKET",
+          "amount": "24.00",
+          "date": "2026-07-20"
+        },
+        {
+          "id": 4,
+          "description": "BVG 48H TICKET",
+          "amount": "16.30",
+          "date": "2026-07-20"
+        }
+      ]
+    },
+    {
+      "id": "gym-day-31",
+      "expense": {
+        "vendor": "McFit",
+        "description": "Day pass while travelling",
+        "amount": "12.90",
+        "date": "2026-07-21"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "MCFIT BERLIN MITTE",
+          "amount": "12.90",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "JOHN REED BERLIN",
+          "amount": "18.00",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 3,
+          "description": "FITX DAY PASS",
+          "amount": "12.90",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 4,
+          "description": "MCFIT MUNICH",
+          "amount": "12.90",
+          "date": "2026-07-21"
+        }
+      ]
+    },
+    {
+      "id": "laundry-32",
+      "expense": {
+        "vendor": "WashBar Berlin",
+        "description": "Hotel laundry",
+        "amount": "14.50",
+        "date": "2026-07-22"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "WASHBAR PRENZLAUER",
+          "amount": "14.50",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 2,
+          "description": "HELLOBF LAUNDRY",
+          "amount": "9.90",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 3,
+          "description": "DM DROGERIE",
+          "amount": "14.50",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 4,
+          "description": "HOTEL LAUNDRY ADLON",
+          "amount": "28.00",
+          "date": "2026-07-22"
+        }
+      ]
+    },
+    {
+      "id": "bookstore-33",
+      "expense": {
+        "vendor": "Dussmann das KulturKaufhaus",
+        "description": "Conference notebook",
+        "amount": "18.90",
+        "date": "2026-07-21"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "DUSSMANN KULTURKAUF",
+          "amount": "18.90",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "THALIA BERLIN",
+          "amount": "16.40",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 3,
+          "description": "AMAZON DE",
+          "amount": "18.90",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 4,
+          "description": "MUJI FRIEDRICHSTR",
+          "amount": "11.00",
+          "date": "2026-07-21"
+        }
+      ]
+    },
+    {
+      "id": "late-train-34",
+      "expense": {
+        "vendor": "ÖBB",
+        "description": "Nightjet sleeper",
+        "amount": "129.00",
+        "date": "2026-07-24"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "OEBB NIGHTJET BER VIE",
+          "amount": "129.00",
+          "date": "2026-07-24"
+        },
+        {
+          "id": 2,
+          "description": "FLIXTRAIN VIENNA",
+          "amount": "39.99",
+          "date": "2026-07-24"
+        },
+        {
+          "id": 3,
+          "description": "WESTBAHN",
+          "amount": "49.90",
+          "date": "2026-07-24"
+        },
+        {
+          "id": 4,
+          "description": "OEBB TICKETSHOP",
+          "amount": "129.00",
+          "date": "2026-07-26"
+        }
+      ]
+    },
+    {
+      "id": "client-gift-35",
+      "expense": {
+        "vendor": "Rausch Schokolade",
+        "description": "Host gift",
+        "amount": "22.00",
+        "date": "2026-07-21"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "RAUSCH CHOCOLATE BER",
+          "amount": "22.00",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 2,
+          "description": "RITTER SPORT STORE",
+          "amount": "14.00",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 3,
+          "description": "AMPELMANN SHOP",
+          "amount": "22.00",
+          "date": "2026-07-21"
+        },
+        {
+          "id": 4,
+          "description": "KADEWE FOOD HALL",
+          "amount": "31.50",
+          "date": "2026-07-21"
+        }
+      ]
+    },
+    {
+      "id": "shared-uber-36",
+      "expense": {
+        "vendor": "Uber",
+        "description": "Airport pool to hotel",
+        "amount": "27.30",
+        "date": "2026-07-18"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "UBER TRIP HELP.UBER",
+          "amount": "27.30",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 2,
+          "description": "FREE NOW BERLIN",
+          "amount": "24.10",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 3,
+          "description": "BOLT RIDE",
+          "amount": "27.30",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 4,
+          "description": "UBER EATS BERLIN",
+          "amount": "18.40",
+          "date": "2026-07-18"
+        }
+      ]
+    },
+    {
+      "id": "invoice-net-37",
+      "expense": {
+        "vendor": "WeWork",
+        "description": "Meeting room 2h",
+        "amount": "90.00",
+        "date": "2026-07-22"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "WEWORK INV 90EUR NET",
+          "amount": "107.10",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 2,
+          "description": "MINDSPACE ROOM",
+          "amount": "85.00",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 3,
+          "description": "GOOGLE MEET HARDWARE",
+          "amount": "0.00",
+          "date": "2026-07-22"
+        },
+        {
+          "id": 4,
+          "description": "WEWORK DAY PASS",
+          "amount": "49.00",
+          "date": "2026-07-22"
+        }
+      ]
+    },
+    {
+      "id": "out-of-window-38",
+      "expense": {
+        "vendor": "Lufthansa",
+        "description": "Seat reservation",
+        "amount": "33.00",
+        "date": "2026-07-18"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "LH SEAT RESERVATION",
+          "amount": "33.00",
+          "date": "2026-07-10"
+        },
+        {
+          "id": 2,
+          "description": "RYANAIR SEAT",
+          "amount": "18.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 3,
+          "description": "EASYJET ALLOCATED",
+          "amount": "12.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 4,
+          "description": "LH CITY LINE SNACK",
+          "amount": "8.50",
+          "date": "2026-07-18"
+        }
+      ]
+    },
+    {
+      "id": "almost-same-vendor-39",
+      "expense": {
+        "vendor": "Hotel Berlin Berlin",
+        "description": "Kurfürstendamm night",
+        "amount": "175.00",
+        "date": "2026-07-19"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "HOTEL BERLIN BERLIN KU",
+          "amount": "175.00",
+          "date": "2026-07-19"
+        },
+        {
+          "id": 2,
+          "description": "HOTEL BERLIN MITTE",
+          "amount": "175.00",
+          "date": "2026-07-19"
+        },
+        {
+          "id": 3,
+          "description": "TITANIC HOTEL BERLIN",
+          "amount": "162.00",
+          "date": "2026-07-19"
+        },
+        {
+          "id": 4,
+          "description": "PARK INN BERLIN",
+          "amount": "119.00",
+          "date": "2026-07-19"
+        }
+      ]
+    },
+    {
+      "id": "no-shared-tokens-40",
+      "expense": {
+        "vendor": "Airport transfer Berlin",
+        "description": "Private car to Adlon",
+        "amount": "62.00",
+        "date": "2026-07-18"
+      },
+      "gold_id": 1,
+      "candidates": [
+        {
+          "id": 1,
+          "description": "BLACKLANE BER TXL ADL",
+          "amount": "62.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 2,
+          "description": "TAXI BERLIN 18/07",
+          "amount": "48.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 3,
+          "description": "UBER BLACK BERLIN",
+          "amount": "62.00",
+          "date": "2026-07-18"
+        },
+        {
+          "id": 4,
+          "description": "ADLON SPA",
+          "amount": "90.00",
+          "date": "2026-07-18"
+        }
+      ]
+    }
+  ]
+}
