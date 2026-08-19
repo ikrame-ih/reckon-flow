@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from reckonflow.core.config import get_settings
 from reckonflow.core.exceptions import ConflictError, NotFoundError
-from reckonflow.models import Expense, Receipt
+from reckonflow.models import Expense, ExtractionRun, Receipt
 from reckonflow.models.travel import ReceiptStatus
 from reckonflow.schemas.receipt import ReceiptExtraction
 
@@ -93,8 +93,8 @@ class ReceiptService:
             raise NotFoundError(f"Receipt {receipt_id} not found")
         return receipt
 
-    async def list_receipts(self, *, limit: int = 100) -> list[Receipt]:
-        stmt = select(Receipt).order_by(Receipt.id.desc()).limit(limit)
+    async def list_extraction_runs(self, *, limit: int = 50) -> list[ExtractionRun]:
+        stmt = select(ExtractionRun).order_by(ExtractionRun.id.desc()).limit(limit)
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 

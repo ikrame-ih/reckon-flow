@@ -28,6 +28,7 @@ from reckonflow.api.v1.health import router as health_router
 from reckonflow.core.config import get_settings
 from reckonflow.core.logging import setup_logging
 from reckonflow.core.redis import close_redis, get_redis
+from reckonflow.worker_queue import close_arq_pool
 
 DESCRIPTION = """\
 Headless API for corporate travel: approvals, double-entry ledger,
@@ -80,6 +81,7 @@ def create_app(*, redis_factory: Callable[[], Redis] | None = None) -> FastAPI:
                 "(refuse to boot with an open finance API)"
             )
         yield
+        await close_arq_pool()
         await close_redis()
 
     app = FastAPI(

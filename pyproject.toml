@@ -25,6 +25,7 @@ dependencies = [
     "groq>=1.6.0",
     "prometheus-fastapi-instrumentator>=8.1.0",
     "scalar-fastapi>=1.0.0",
+    "arq>=0.25.0",
 ]
 
 [project.scripts]

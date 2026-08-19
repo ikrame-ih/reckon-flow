@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     reconciliation_min_fuzzy_score: float = 60.0
     reconciliation_rrf_k: int = 60
 
+    # inline = FastAPI BackgroundTasks (tests / no Redis). arq = durable Redis jobs.
+    receipt_queue: str = "inline"
+    receipt_job_max_tries: int = 3
+    receipt_job_timeout_seconds: int = 120
+
 
 @lru_cache
 def get_settings() -> Settings:

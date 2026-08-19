@@ -1,6 +1,6 @@
 # ADR 005: BackgroundTasks now, durable queue later
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR 007](007-durable-receipt-jobs.md)
 - **Date:** 2026-08-04
 - **Phase:** 4 / 6
 

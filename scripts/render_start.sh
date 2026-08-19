@@ -7,4 +7,7 @@ uv run alembic upgrade head
 if [ "${SEED_ON_BOOT:-false}" = "true" ]; then
   uv run python scripts/seed_demo.py || true
 fi
-uv run uvicorn reckonflow.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+if [ "${RECEIPT_QUEUE:-inline}" = "arq" ]; then
+  uv run arq reckonflow.worker.WorkerSettings &
+fi
+exec uv run uvicorn reckonflow.main:app --host 0.0.0.0 --port "${PORT:-8000}"

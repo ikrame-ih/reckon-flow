@@ -18,11 +18,13 @@ from reckonflow.core.exceptions import ConflictError, NotFoundError
 from reckonflow.models.travel import ReceiptStatus
 from reckonflow.schemas.common import ErrorResponse
 from reckonflow.schemas.receipt import (
+    ExtractionRunRead,
     ReceiptAccepted,
     ReceiptExtractionRead,
     ReceiptRead,
 )
 from reckonflow.tasks.receipts import extract_receipt_task
+from reckonflow.worker_queue import enqueue_extract
 
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 
@@ -96,12 +98,35 @@ async def upload_receipt(
     except ConflictError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
-    background_tasks.add_task(extract_receipt_task, receipt.id)
+    queued = await enqueue_extract(receipt.id)
+    if queued == "inline":
+        background_tasks.add_task(extract_receipt_task, receipt.id)
 
     prefix = get_settings().api_v1_prefix
     return ReceiptAccepted(
-        receipt_id=receipt.id, poll_url=f"{prefix}/receipts/{receipt.id}"
+        receipt_id=receipt.id,
+        poll_url=f"{prefix}/receipts/{receipt.id}",
+        queue=queued,
     )
+
+
+@router.get(
+    "/runs",
+    response_model=list[ExtractionRunRead],
+    summary="List recent extraction attempts",
+    description=(
+        "Latency and outcome per attempt. `token_count` is null for the stub "
+        "and until a provider exposes usage. Not a product dashboard."
+    ),
+)
+async def list_extraction_runs(
+    service: ReceiptServiceDep,
+    limit: int = 50,
+) -> list[ExtractionRunRead]:
+    """Newest extraction_runs first"""
+    cap = min(max(limit, 1), 200)
+    rows = await service.list_extraction_runs(limit=cap)
+    return [ExtractionRunRead.model_validate(row) for row in rows]
 
 
 @router.get(

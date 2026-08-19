@@ -65,7 +65,7 @@ Client
   → Services (travel, ledger, bank, receipts, reconciliation)
   → PostgreSQL
 
-Receipt upload → 202 → BackgroundTasks → Groq / stub → structured JSON
+Receipt upload → 202 → ARQ (Redis) or inline fallback → Groq / stub → JSON
 ```
 
 Interesting decisions (detail in docs / ADRs):
@@ -78,7 +78,7 @@ Interesting decisions (detail in docs / ADRs):
 ## Trade-offs and limitations
 
 - Auth is a **shared API key** on mutating routes — no roles, tenants, or ownership yet (ADR 004).
-- Receipt work uses FastAPI **BackgroundTasks**, not a durable queue (ADR 005).
+- Receipt extraction uses **ARQ** when `RECEIPT_QUEUE=arq` (retry + stable job id). Tests and enqueue failures stay on FastAPI BackgroundTasks (ADR 007).
 - Rate limiting uses **Redis** (fixed window) with an in-memory fallback when Redis is down (ADR 006).
 - Embeddings are a **deterministic stand-in** offline; optional real vectors later.
 - Demo storage for receipts is local disk (ephemeral on free PaaS).
@@ -120,6 +120,7 @@ Open [http://localhost:8000/docs](http://localhost:8000/docs).
 | Command | Purpose |
 | --- | --- |
 | `uv run uvicorn reckonflow.main:app --reload` | API server |
+| `uv run arq reckonflow.worker.WorkerSettings` | Receipt worker (needs Redis + `RECEIPT_QUEUE=arq`) |
 | `uv run alembic upgrade head` | Apply migrations |
 | `uv run python scripts/seed_demo.py` | Demo chart + sample data |
 | `uv run ruff check src tests` | Lint |
@@ -166,7 +167,8 @@ src/reckonflow/
   schemas/      # Pydantic I/O
   ai/           # Groq + stub extractors
   core/         # Config, DB, money, redis, embeddings
-  tasks/        # BackgroundTasks helpers
+  tasks/        # extract_receipt_task + extraction_runs
+  worker.py     # ARQ WorkerSettings
 alembic/        # Migrations
 docs/           # MkDocs (phases, glossary, ADRs, security)
 evals/          # Receipt fixtures + synthetic matching dataset
@@ -176,9 +178,9 @@ scripts/        # seed_demo, run_evals, render_start
 
 ## Possible next steps
 
-If this grew past a portfolio API: OIDC + roles, a durable job queue (arq/Celery)
-for receipts, and real embedding providers behind the same reconciliation
-interface.
+If this grew past a portfolio API: OIDC + roles, a second Render worker, object
+storage for receipts, and real embedding providers behind the same
+reconciliation interface.
 
 ## Documentation
 
@@ -186,7 +188,8 @@ interface.
 - [Build phases](https://ikrame-ih.github.io/reckon-flow/phases/) — ledger → travel → recon
 - [Glossary](https://ikrame-ih.github.io/reckon-flow/glossary/) — `SET NX EX`, RRF, `MoneyStr`…
 - [Security](https://ikrame-ih.github.io/reckon-flow/security/)
-- [ADRs](https://ikrame-ih.github.io/reckon-flow/adr/) — auth scope, fail-open, background tasks
+- [ADRs](https://ikrame-ih.github.io/reckon-flow/adr/) — auth, ARQ jobs, fail-open
+- [Engineering notes](https://ikrame-ih.github.io/reckon-flow/notes/rrf-and-prefilter/) — RRF + extractor eval
 
 ## Author
 

@@ -12,7 +12,8 @@ production quality.
 | Receipt fixtures + stub/Groq eval | [`evals/receipts/`](https://github.com/ikrame-ih/reckon-flow/tree/main/evals/receipts), [`scripts/run_evals.py`](https://github.com/ikrame-ih/reckon-flow/blob/main/scripts/run_evals.py) | Four annotated receipts. Stub extractor when `GROQ_API_KEY` is empty |
 | Hybrid matching | [`src/reckonflow/services/reconciliation.py`](https://github.com/ikrame-ih/reckon-flow/blob/main/src/reckonflow/services/reconciliation.py) | SQL prefilter → RapidFuzz → embeddings → RRF (`k=60`) |
 | Stub / offline embeddings | [`src/reckonflow/core/embeddings.py`](https://github.com/ikrame-ih/reckon-flow/blob/main/src/reckonflow/core/embeddings.py) | Hashed tokens, L2-normalised. **Not** a neural embedding model |
-| Background extraction | [`src/reckonflow/api/v1/receipts.py`](https://github.com/ikrame-ih/reckon-flow/blob/main/src/reckonflow/api/v1/receipts.py), [ADR 005](adr/005-background-tasks.md) | FastAPI `BackgroundTasks`, not a durable queue |
+| Background extraction | [`src/reckonflow/worker.py`](https://github.com/ikrame-ih/reckon-flow/blob/main/src/reckonflow/worker.py), [ADR 007](adr/007-durable-receipt-jobs.md) | ARQ when Redis enqueue works; inline BackgroundTasks in tests / on enqueue failure |
+| Extraction tracing | `GET /api/v1/receipts/runs`, table `extraction_runs` | `duration_ms`, provider, outcome, attempt. `token_count` is null |
 | Row locks on confirm | `ReconciliationService.confirm_match` | `SELECT … FOR UPDATE` where the dialect supports it |
 | CI evals | [`.github/workflows/ci.yml`](https://github.com/ikrame-ih/reckon-flow/blob/main/.github/workflows/ci.yml) | Receipt fixtures + matching baselines, every push/PR |
 

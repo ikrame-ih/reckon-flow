@@ -7,6 +7,7 @@ from reckonflow.models.travel import (
     Approval,
     BankTransaction,
     Expense,
+    ExtractionRun,
     Receipt,
     TravelRequest,
 )
@@ -17,6 +18,7 @@ __all__ = [
     "BankTransaction",
     "Base",
     "Expense",
+    "ExtractionRun",
     "LedgerEntry",
     "LedgerTransaction",
     "Receipt",

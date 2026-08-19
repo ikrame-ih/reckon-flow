@@ -51,6 +51,9 @@ nav:
       - "5 — Reconciliation": phases/05-reconciliation.md
       - "6 — Polish & deploy": phases/06-polish.md
   - Glossary: glossary.md
+  - Engineering notes:
+      - RRF + prefilter: notes/rrf-and-prefilter.md
+      - Extractor eval: notes/extractor-eval.md
   - Security: security.md
   - ADRs:
       - Index: adr/README.md
@@ -60,6 +63,7 @@ nav:
       - "004 API-key auth": adr/004-api-key-auth.md
       - "005 Background tasks": adr/005-background-tasks.md
       - "006 Redis rate limit": adr/006-redis-rate-limit.md
+      - "007 Durable receipt jobs": adr/007-durable-receipt-jobs.md
 
 markdown_extensions:
   - admonition

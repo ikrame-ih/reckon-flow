@@ -22,6 +22,7 @@ background (Groq or stub). Matching uses SQL prefilter + RapidFuzz + RRF.
 
 <a href="getting-started/"><strong>Getting started</strong><span>Clone, migrate, seed, run</span></a>
 <a href="evaluation/"><strong>Evaluation</strong><span>What is measured, what is not</span></a>
+<a href="notes/rrf-and-prefilter/"><strong>RRF note</strong><span>Why prefilter + fusion</span></a>
 <a href="phases/"><strong>Build phases</strong><span>Ledger → travel → recon</span></a>
 <a href="glossary/"><strong>Glossary</strong><span>Idempotency, RRF, MoneyStr…</span></a>
 <a href="security/"><strong>Security</strong><span>Checks and accepted risks</span></a>

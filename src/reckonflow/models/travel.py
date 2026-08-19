@@ -140,6 +140,32 @@ class Receipt(Base):
     )
 
     expense: Mapped[Expense | None] = relationship(back_populates="receipt")
+    extraction_runs: Mapped[list[ExtractionRun]] = relationship(
+        back_populates="receipt"
+    )
+
+
+class ExtractionRun(Base):
+    """One extraction attempt — latency and outcome, not a dashboard product"""
+
+    __tablename__ = "extraction_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    receipt_id: Mapped[int] = mapped_column(
+        ForeignKey("receipts.id"), index=True, nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(64))
+    outcome: Mapped[str] = mapped_column(String(32))
+    duration_ms: Mapped[int] = mapped_column()
+    attempt: Mapped[int] = mapped_column(default=1)
+    job_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_count: Mapped[int | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    receipt: Mapped[Receipt] = relationship(back_populates="extraction_runs")
 
 
 class BankTransaction(Base):

@@ -46,6 +46,6 @@ false on either probe, idempotency is fail-open.
 2. `REDIS_URL` — Upstash **`rediss://`** URL (TLS). Rotate the token if it
    was ever exposed, then paste the new value into Render.
 3. `API_KEY` — **required**; production refuses to boot if empty
-4. Confirm start logs include `alembic upgrade head` reaching revision `004`
+4. Confirm start logs include `alembic upgrade head` reaching revision `005`
 
 Details: [Phase 6](phases/06-polish.md). Docs site: https://ikrame-ih.github.io/reckon-flow/

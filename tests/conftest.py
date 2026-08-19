@@ -85,9 +85,9 @@ async def pg_session(pg_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
     async with pg_engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE TABLE ledger_entries, ledger_transactions, receipts, "
-                "bank_transactions, expenses, approvals, travel_requests, "
-                "accounts RESTART IDENTITY CASCADE"
+                "TRUNCATE TABLE ledger_entries, ledger_transactions, "
+                "extraction_runs, receipts, bank_transactions, expenses, "
+                "approvals, travel_requests, accounts RESTART IDENTITY CASCADE"
             )
         )
 

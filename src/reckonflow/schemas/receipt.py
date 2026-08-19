@@ -69,6 +69,28 @@ class ReceiptAccepted(BaseModel):
     receipt_id: int
     status: ReceiptStatus = ReceiptStatus.UPLOADED
     poll_url: str = Field(..., examples=["/api/v1/receipts/1"])
+    queue: str = Field(
+        "inline",
+        description="arq when Redis job queued; inline when BackgroundTasks fallback",
+        examples=["arq", "inline"],
+    )
+
+
+class ExtractionRunRead(BaseModel):
+    """One extraction attempt for tracing — tokens are null on the stub"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    receipt_id: int
+    provider: str
+    outcome: str
+    duration_ms: int
+    attempt: int
+    job_id: str | None = None
+    error: str | None = None
+    token_count: int | None = None
+    created_at: datetime
 
 
 class ReceiptExtractionRead(BaseModel):
