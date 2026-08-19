@@ -9,7 +9,7 @@ for mutating routes.
 
 | Piece | Host |
 | --- | --- |
-| API | Render (`scripts/render_start.sh` runs migrations then uvicorn) |
+| API | Render (`scripts/render_start.sh` migrates, optionally starts ARQ, then uvicorn) |
 | Database | Neon Postgres |
 | Idempotency | Upstash Redis (`REDIS_KEY_PREFIX=reckonflow:`) |
 | Docs | MkDocs → GitHub Pages |

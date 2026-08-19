@@ -12,6 +12,12 @@ uv run uvicorn reckonflow.main:app --reload --port 8000
 
 Open http://localhost:8000/docs
 
+For durable receipt jobs (Redis running, `.env` has `RECEIPT_QUEUE=arq`):
+
+```bash
+uv run arq reckonflow.worker.WorkerSettings
+```
+
 Optional: set `API_KEY` in `.env` and send `X-API-Key` on **all** finance
 `/api/v1` calls (reads and writes). `/health`, `/ready`, and docs stay public.
 
@@ -33,8 +39,9 @@ Always send money as JSON strings (`"120.50"`), never as numbers.
 | Piece | Host |
 | --- | --- |
 | API | Render |
+| Receipt worker | Same Render process (`arq` when `RECEIPT_QUEUE=arq`) |
 | Database | Neon |
-| Idempotency | Upstash Redis |
+| Idempotency + jobs | Upstash Redis |
 
 ### Production checklist (Render env)
 

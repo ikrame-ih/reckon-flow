@@ -13,10 +13,14 @@ Content-Type: multipart/form-data
 file=<hotel.txt>
 expense_id=1
 
-→ 202 {"id": 1, "status": "pending", ...}
+→ 202 {"receipt_id": 1, "status": "uploaded", "queue": "arq"|"inline",
+       "poll_url": "/api/v1/receipts/1"}
 
 GET /api/v1/receipts/1
-→ status=completed, extraction={vendor, amount, currency, date, ...}
+→ status=extracted|failed|processing|uploaded
+
+GET /api/v1/receipts/runs
+→ recent extraction_runs (duration_ms, provider, outcome; token_count null)
 ```
 
 Uploads are **plain text / OCR text only** (not PDF or images). Size is checked
@@ -42,4 +46,4 @@ Gate in CI: overall field accuracy must stay above the threshold in
 fields that can approve or pay. Containment is the schema (`extra="forbid"`),
 not prompt wording. See ADR 002.
 
-Paths: `ai/groq_provider.py`, `ai/stub.py`, `evals/`
+Paths: `ai/groq_provider.py`, `ai/stub.py`, `evals/`, `worker.py`, ADR 007.

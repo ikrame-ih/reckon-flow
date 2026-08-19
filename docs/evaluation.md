@@ -21,8 +21,10 @@ production quality.
 
 - A **labeled production** bank/expense dataset (no real statements in-tree)
 - Reported **recall@k / precision** on live traffic
-- **Cost or latency tracing** for Groq calls
-- A worker with retries / DLQ (see ADR 005)
+- **Cost tracing / Groq token counts** — `extraction_runs` has latency, not
+  billed tokens (`token_count` is null)
+- A **dead-letter queue** — ARQ retries three times (ADR 007); failed jobs
+  stay `failed` on the receipt row, no DLQ product
 - Real vectors on the default path — swap `text_embedding` later without
   changing columns
 

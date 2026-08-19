@@ -15,8 +15,9 @@ instances may take ~50s on the first request after sleep.
 </div>
 
 Request path in one line: client → idempotency middleware (Redis) → routers →
-services → Postgres; receipt uploads return **202** and extract in the
-background (Groq or stub). Matching uses SQL prefilter + RapidFuzz + RRF.
+services → Postgres; receipt uploads return **202** and extract on **ARQ**
+(or inline BackgroundTasks in tests / if enqueue fails). Matching uses SQL
+prefilter + RapidFuzz + RRF.
 
 <div class="rf-cards" markdown="1">
 
