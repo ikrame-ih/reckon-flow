@@ -10,7 +10,7 @@
 double-entry ledger, LLM receipt extraction, and hybrid bank reconciliation.
 
 Built to force the hard parts of finance software (money precision, retries,
-concurrency, untrusted model output) instead of another CRUD demo.
+concurrency, untrusted model output).
 
 | | |
 | --- | --- |
